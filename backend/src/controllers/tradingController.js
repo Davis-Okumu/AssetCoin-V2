@@ -25,19 +25,26 @@ function getAuthenticatedUserId(req) {
 // GET /api/trading/marketplace
 // =====================================================
 
+
 export async function getMarketplace(req, res) {
   try {
     const {
       search = "",
+      assetType = "",
       category = "",
       listingStatus = "",
       page = 1,
       limit = 20,
     } = req.query;
 
+    // Support both assetType (Flutter) and category.
+    const normalizedCategory = String(
+      assetType || category
+    );
+
     const result = await getMarketplaceListings({
       search: String(search),
-      category: String(category),
+      category: normalizedCategory,
       listingStatus: String(listingStatus),
       page,
       limit,
@@ -46,8 +53,10 @@ export async function getMarketplace(req, res) {
     return res.status(200).json({
       success: true,
       message: "Trading marketplace retrieved successfully.",
-      data: result.listings,
-      pagination: result.pagination,
+      data: {
+        listings: result.listings,
+        pagination: result.pagination,
+      },
     });
   } catch (error) {
     console.error(
