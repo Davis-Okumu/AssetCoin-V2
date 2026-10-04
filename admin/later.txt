@@ -1,0 +1,11 @@
+How to build the website
+
+When development is complete, run:
+
+flutter build web --release
+
+Flutter generates the production website inside:
+
+admin/build/web/
+
+You can then deploy those files to your hosting provider.
