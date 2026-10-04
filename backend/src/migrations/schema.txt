@@ -1,0 +1,1029 @@
+-- =========================================================
+-- CENTRALIZED ASSET TOKENIZATION PLATFORM DATABASE SCHEMA
+-- =========================================================
+
+
+-- =========================
+-- 1. Users Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `firstName` VARCHAR(100) NOT NULL,
+  `lastName` VARCHAR(100) NOT NULL,
+  `phone` VARCHAR(20) NOT NULL UNIQUE,
+  `email` VARCHAR(150) UNIQUE,
+  `nationalId` VARCHAR(50) NOT NULL UNIQUE,
+  `idDocumentUrl` VARCHAR(255) DEFAULT NULL,
+  `profilePhotoUrl` VARCHAR(255) DEFAULT NULL,
+  `passwordHash` VARCHAR(255) NOT NULL,
+  `kycStatus` ENUM('pending','verified','rejected') DEFAULT 'pending',
+  `role` ENUM('user','admin') DEFAULT 'user',
+  `accountStatus` ENUM('active','suspended','deactivated','deleted') DEFAULT 'active',
+  `lastLoginAt` DATETIME DEFAULT NULL,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 2. KYC Records Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `kyc_records` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `userId` INT UNSIGNED NOT NULL,
+  `nationalId` VARCHAR(50) NOT NULL,
+  `idDocumentUrl` VARCHAR(255) DEFAULT NULL,
+  `selfieUrl` VARCHAR(255) DEFAULT NULL,
+  `verificationMethod` ENUM('manual','automated') DEFAULT 'manual',
+  `status` ENUM('pending','under_review','verified','rejected') DEFAULT 'pending',
+  `rejectionReason` TEXT DEFAULT NULL,
+  `verifiedBy` INT UNSIGNED DEFAULT NULL,
+  `verifiedAt` DATETIME DEFAULT NULL,
+  `submittedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_kyc_userId` (`userId`),
+  KEY `idx_kyc_status` (`status`),
+  CONSTRAINT `fk_kyc_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_kyc_verifiedBy`
+    FOREIGN KEY (`verifiedBy`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 3. Assets Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `assets` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `ownerId` INT UNSIGNED NOT NULL,
+  `assetCode` VARCHAR(50) NOT NULL UNIQUE,
+  `assetType` ENUM('land','livestock','produce','vehicle','property','equipment','other') NOT NULL,
+  `name` VARCHAR(150) NOT NULL,
+  `description` TEXT DEFAULT NULL,
+  `location` VARCHAR(255) DEFAULT NULL,
+  `latitude` DECIMAL(10,8) DEFAULT NULL,
+  `longitude` DECIMAL(11,8) DEFAULT NULL,
+  `registrationNumber` VARCHAR(100) DEFAULT NULL,
+  `estimatedValue` DECIMAL(20,2) DEFAULT NULL,
+  `currency` VARCHAR(10) NOT NULL DEFAULT 'KES',
+
+  `status` ENUM(
+    'draft',
+    'pending',
+    'under_review',
+    'changes_required',
+    'approved',
+    'rejected',
+    'tokenized',
+    'suspended'
+  ) NOT NULL DEFAULT 'draft',
+
+  `rejectionReason` TEXT DEFAULT NULL,
+
+  `approvedBy` INT UNSIGNED DEFAULT NULL,
+  `approvedAt` DATETIME DEFAULT NULL,
+
+  `reviewedBy` INT UNSIGNED DEFAULT NULL,
+  `reviewedAt` DATETIME DEFAULT NULL,
+  `reviewNotes` TEXT DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_assets_ownerId` (`ownerId`),
+  KEY `idx_assets_type` (`assetType`),
+  KEY `idx_assets_status` (`status`),
+  KEY `idx_assets_reviewedBy` (`reviewedBy`),
+
+  CONSTRAINT `fk_assets_owner`
+    FOREIGN KEY (`ownerId`) REFERENCES `users` (`id`),
+
+  CONSTRAINT `fk_assets_approvedBy`
+    FOREIGN KEY (`approvedBy`) REFERENCES `users` (`id`),
+
+  CONSTRAINT `fk_assets_reviewedBy`
+    FOREIGN KEY (`reviewedBy`) REFERENCES `users` (`id`)
+    ON DELETE SET NULL
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 4. Asset Photos Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `asset_photos` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `assetId` INT UNSIGNED NOT NULL,
+  `photoUrl` VARCHAR(255) NOT NULL,
+  `isPrimary` BOOLEAN NOT NULL DEFAULT FALSE,
+  `displayOrder` INT UNSIGNED NOT NULL DEFAULT 0,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_assetPhotos_assetId` (`assetId`),
+  CONSTRAINT `fk_assetPhotos_asset`
+    FOREIGN KEY (`assetId`) REFERENCES `assets` (`id`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 5. Asset Documents Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `asset_documents` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `assetId` INT UNSIGNED NOT NULL,
+  `documentType` ENUM('ownership','valuation','registration','identification','legal','inspection','other') NOT NULL,
+  `documentName` VARCHAR(150) NOT NULL,
+  `documentUrl` VARCHAR(255) NOT NULL,
+  `documentHash` CHAR(64) DEFAULT NULL,
+  `status` ENUM('pending','verified','rejected') DEFAULT 'pending',
+  `verifiedBy` INT UNSIGNED DEFAULT NULL,
+  `verifiedAt` DATETIME DEFAULT NULL,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_assetDocuments_assetId` (`assetId`),
+  CONSTRAINT `fk_assetDocuments_asset`
+    FOREIGN KEY (`assetId`) REFERENCES `assets` (`id`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_assetDocuments_verifiedBy`
+    FOREIGN KEY (`verifiedBy`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 6. Asset Valuations Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `asset_valuations` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `assetId` INT UNSIGNED NOT NULL,
+  `valuationAmount` DECIMAL(20,2) NOT NULL,
+  `currency` VARCHAR(10) NOT NULL DEFAULT 'KES',
+  `valuationMethod` ENUM('manual','professional','market','automated') NOT NULL,
+  `valuerName` VARCHAR(150) DEFAULT NULL,
+  `valuationDocumentId` INT UNSIGNED DEFAULT NULL,
+  `notes` TEXT DEFAULT NULL,
+  `status` ENUM('pending','verified','rejected') DEFAULT 'pending',
+  `valuedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_valuations_assetId` (`assetId`),
+  CONSTRAINT `fk_valuations_asset`
+    FOREIGN KEY (`assetId`) REFERENCES `assets` (`id`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_valuations_document`
+    FOREIGN KEY (`valuationDocumentId`) REFERENCES `asset_documents` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 7. Tokens Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `tokens` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `assetId` INT UNSIGNED NOT NULL,
+  `tokenCode` VARCHAR(50) NOT NULL UNIQUE,
+  `tokenName` VARCHAR(150) NOT NULL,
+  `description` TEXT DEFAULT NULL,
+  `totalSupply` DECIMAL(30,8) NOT NULL,
+  `availableSupply` DECIMAL(30,8) NOT NULL,
+  `tokenPrice` DECIMAL(20,8) NOT NULL,
+  `currency` VARCHAR(10) NOT NULL DEFAULT 'KES',
+  `decimals` TINYINT UNSIGNED NOT NULL DEFAULT 8,
+  `status` ENUM('pending','active','paused','fully_sold','burned','suspended') DEFAULT 'pending',
+  `mintedAt` DATETIME DEFAULT NULL,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_tokens_assetId` (`assetId`),
+  KEY `idx_tokens_status` (`status`),
+  CONSTRAINT `fk_tokens_asset`
+    FOREIGN KEY (`assetId`) REFERENCES `assets` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 8. Token Holdings Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `token_holdings` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `userId` INT UNSIGNED NOT NULL,
+  `tokenId` INT UNSIGNED NOT NULL,
+  `quantity` DECIMAL(30,8) NOT NULL DEFAULT 0,
+  `lockedQuantity` DECIMAL(30,8) NOT NULL DEFAULT 0,
+  `averageBuyPrice` DECIMAL(20,8) DEFAULT NULL,
+  `totalInvested` DECIMAL(20,2) DEFAULT NULL,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_tokenHolding_user_token` (`userId`,`tokenId`),
+  KEY `idx_holdings_tokenId` (`tokenId`),
+  CONSTRAINT `fk_holdings_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_holdings_token`
+    FOREIGN KEY (`tokenId`) REFERENCES `tokens` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 9. Wallets Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `wallets` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `userId` INT UNSIGNED NOT NULL,
+  `walletAddress` VARCHAR(100) NOT NULL UNIQUE,
+  `fiatBalance` DECIMAL(20,2) NOT NULL DEFAULT 0.00,
+  `lockedFiatBalance` DECIMAL(20,2) NOT NULL DEFAULT 0.00,
+  `currency` VARCHAR(10) NOT NULL DEFAULT 'KES',
+  `status` ENUM('active','frozen','closed') DEFAULT 'active',
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_wallet_user` (`userId`),
+  CONSTRAINT `fk_wallets_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 10. Wallet Transactions Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `wallet_transactions` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `walletId` INT UNSIGNED NOT NULL,
+  `userId` INT UNSIGNED NOT NULL,
+  `transactionReference` VARCHAR(100) NOT NULL UNIQUE,
+  `transactionType` ENUM('deposit','withdrawal','token_purchase','token_sale','conversion','refund','fee','adjustment') NOT NULL,
+  `amount` DECIMAL(20,2) NOT NULL,
+  `currency` VARCHAR(10) NOT NULL DEFAULT 'KES',
+  `balanceBefore` DECIMAL(20,2) NOT NULL,
+  `balanceAfter` DECIMAL(20,2) NOT NULL,
+  `status` ENUM('pending','completed','failed','reversed') DEFAULT 'pending',
+  `description` VARCHAR(255) DEFAULT NULL,
+  `previousHash` CHAR(64) DEFAULT NULL,
+  `transactionHash` CHAR(64) NOT NULL UNIQUE,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_walletTransactions_walletId` (`walletId`),
+  KEY `idx_walletTransactions_userId` (`userId`),
+  KEY `idx_walletTransactions_createdAt` (`createdAt`),
+  CONSTRAINT `fk_walletTransactions_wallet`
+    FOREIGN KEY (`walletId`) REFERENCES `wallets` (`id`),
+  CONSTRAINT `fk_walletTransactions_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- TRADING
+-- =========================================================
+
+
+-- =========================
+-- 11. Listings Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `listings` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `sellerId` INT UNSIGNED NOT NULL,
+  `tokenId` INT UNSIGNED NOT NULL,
+  `quantity` DECIMAL(30,8) NOT NULL,
+  `remainingQuantity` DECIMAL(30,8) NOT NULL,
+  `pricePerToken` DECIMAL(20,8) NOT NULL,
+  `currency` VARCHAR(10) NOT NULL DEFAULT 'KES',
+  `listingType` ENUM('sell','buy') NOT NULL DEFAULT 'sell',
+  `status` ENUM('active','partially_filled','filled','cancelled','expired','suspended') DEFAULT 'active',
+  `expiresAt` DATETIME DEFAULT NULL,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_listings_sellerId` (`sellerId`),
+  KEY `idx_listings_tokenId` (`tokenId`),
+  KEY `idx_listings_status` (`status`),
+  CONSTRAINT `fk_listings_seller`
+    FOREIGN KEY (`sellerId`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_listings_token`
+    FOREIGN KEY (`tokenId`) REFERENCES `tokens` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 12. Orders Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `orders` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `orderReference` VARCHAR(100) NOT NULL UNIQUE,
+  `userId` INT UNSIGNED NOT NULL,
+  `tokenId` INT UNSIGNED NOT NULL,
+  `listingId` BIGINT UNSIGNED DEFAULT NULL,
+  `orderType` ENUM('buy','sell') NOT NULL,
+  `quantity` DECIMAL(30,8) NOT NULL,
+  `filledQuantity` DECIMAL(30,8) NOT NULL DEFAULT 0,
+  `pricePerToken` DECIMAL(20,8) NOT NULL,
+  `totalAmount` DECIMAL(20,2) NOT NULL,
+  `currency` VARCHAR(10) NOT NULL DEFAULT 'KES',
+  `status` ENUM('pending','open','partially_filled','filled','cancelled','rejected','expired') DEFAULT 'pending',
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_orders_userId` (`userId`),
+  KEY `idx_orders_tokenId` (`tokenId`),
+  KEY `idx_orders_listingId` (`listingId`),
+  KEY `idx_orders_status` (`status`),
+  CONSTRAINT `fk_orders_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_orders_token`
+    FOREIGN KEY (`tokenId`) REFERENCES `tokens` (`id`),
+  CONSTRAINT `fk_orders_listing`
+    FOREIGN KEY (`listingId`) REFERENCES `listings` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 13. Transactions Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `transactions` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `transactionReference` VARCHAR(100) NOT NULL UNIQUE,
+  `buyerId` INT UNSIGNED NOT NULL,
+  `sellerId` INT UNSIGNED NOT NULL,
+  `tokenId` INT UNSIGNED NOT NULL,
+  `listingId` BIGINT UNSIGNED DEFAULT NULL,
+  `buyOrderId` BIGINT UNSIGNED DEFAULT NULL,
+  `sellOrderId` BIGINT UNSIGNED DEFAULT NULL,
+  `quantity` DECIMAL(30,8) NOT NULL,
+  `pricePerToken` DECIMAL(20,8) NOT NULL,
+  `totalAmount` DECIMAL(20,2) NOT NULL,
+  `feeAmount` DECIMAL(20,2) NOT NULL DEFAULT 0.00,
+  `currency` VARCHAR(10) NOT NULL DEFAULT 'KES',
+  `status` ENUM('pending','completed','failed','reversed') DEFAULT 'pending',
+  `previousHash` CHAR(64) DEFAULT NULL,
+  `transactionHash` CHAR(64) NOT NULL UNIQUE,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_transactions_buyerId` (`buyerId`),
+  KEY `idx_transactions_sellerId` (`sellerId`),
+  KEY `idx_transactions_tokenId` (`tokenId`),
+  KEY `idx_transactions_createdAt` (`createdAt`),
+  CONSTRAINT `fk_transactions_buyer`
+    FOREIGN KEY (`buyerId`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_transactions_seller`
+    FOREIGN KEY (`sellerId`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_transactions_token`
+    FOREIGN KEY (`tokenId`) REFERENCES `tokens` (`id`),
+  CONSTRAINT `fk_transactions_listing`
+    FOREIGN KEY (`listingId`) REFERENCES `listings` (`id`),
+  CONSTRAINT `fk_transactions_buyOrder`
+    FOREIGN KEY (`buyOrderId`) REFERENCES `orders` (`id`),
+  CONSTRAINT `fk_transactions_sellOrder`
+    FOREIGN KEY (`sellOrderId`) REFERENCES `orders` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 14. Token Price History Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `token_price_history` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tokenId` INT UNSIGNED NOT NULL,
+  `price` DECIMAL(20,8) NOT NULL,
+  `currency` VARCHAR(10) NOT NULL DEFAULT 'KES',
+  `source` ENUM('market','manual','valuation','transaction') NOT NULL,
+  `referenceId` BIGINT UNSIGNED DEFAULT NULL,
+  `recordedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_priceHistory_tokenId` (`tokenId`),
+  KEY `idx_priceHistory_recordedAt` (`recordedAt`),
+  CONSTRAINT `fk_priceHistory_token`
+    FOREIGN KEY (`tokenId`) REFERENCES `tokens` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- LEDGER & AUDITING
+-- =========================================================
+
+
+-- =========================
+-- 15. Ledger Entries Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `ledger_entries` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `entryReference` VARCHAR(100) NOT NULL UNIQUE,
+  `userId` INT UNSIGNED DEFAULT NULL,
+  `walletId` INT UNSIGNED DEFAULT NULL,
+  `tokenId` INT UNSIGNED DEFAULT NULL,
+  `transactionId` BIGINT UNSIGNED DEFAULT NULL,
+  `entryType` ENUM('debit','credit') NOT NULL,
+  `assetType` ENUM('fiat','token') NOT NULL,
+  `amount` DECIMAL(30,8) NOT NULL,
+  `currency` VARCHAR(10) DEFAULT NULL,
+  `balanceBefore` DECIMAL(30,8) DEFAULT NULL,
+  `balanceAfter` DECIMAL(30,8) DEFAULT NULL,
+  `description` VARCHAR(255) DEFAULT NULL,
+  `previousHash` CHAR(64) DEFAULT NULL,
+  `entryHash` CHAR(64) NOT NULL UNIQUE,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_ledger_userId` (`userId`),
+  KEY `idx_ledger_walletId` (`walletId`),
+  KEY `idx_ledger_tokenId` (`tokenId`),
+  KEY `idx_ledger_createdAt` (`createdAt`),
+  CONSTRAINT `fk_ledger_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_ledger_wallet`
+    FOREIGN KEY (`walletId`) REFERENCES `wallets` (`id`),
+  CONSTRAINT `fk_ledger_token`
+    FOREIGN KEY (`tokenId`) REFERENCES `tokens` (`id`),
+  CONSTRAINT `fk_ledger_transaction`
+    FOREIGN KEY (`transactionId`) REFERENCES `transactions` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 16. Audit Logs Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `audit_logs` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `userId` INT UNSIGNED DEFAULT NULL,
+  `action` VARCHAR(100) NOT NULL,
+  `entityType` VARCHAR(100) NOT NULL,
+  `entityId` BIGINT UNSIGNED DEFAULT NULL,
+  `oldValues` JSON DEFAULT NULL,
+  `newValues` JSON DEFAULT NULL,
+  `ipAddress` VARCHAR(45) DEFAULT NULL,
+  `userAgent` VARCHAR(500) DEFAULT NULL,
+  `previousHash` CHAR(64) DEFAULT NULL,
+  `logHash` CHAR(64) NOT NULL UNIQUE,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_userId` (`userId`),
+  KEY `idx_audit_entity` (`entityType`,`entityId`),
+  KEY `idx_audit_createdAt` (`createdAt`),
+  CONSTRAINT `fk_audit_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- COMMUNICATION
+-- =========================================================
+
+
+-- =========================
+-- 17. Notifications Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `userId` INT UNSIGNED NOT NULL,
+  `type` ENUM('system','trading','wallet','kyc','asset','security') NOT NULL,
+  `title` VARCHAR(200) NOT NULL,
+  `message` TEXT NOT NULL,
+  `referenceType` VARCHAR(100) DEFAULT NULL,
+  `referenceId` BIGINT UNSIGNED DEFAULT NULL,
+  `deliveryMethod` ENUM('in_app','email','sms') DEFAULT 'in_app',
+  `status` ENUM('new','viewed','sent','failed') DEFAULT 'new',
+  `readAt` DATETIME DEFAULT NULL,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_notifications_userId` (`userId`),
+  KEY `idx_notifications_status` (`status`),
+  KEY `idx_notifications_type` (`type`),
+  CONSTRAINT `fk_notifications_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 18. Announcements Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `announcements` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `title` VARCHAR(200) NOT NULL,
+  `content` TEXT NOT NULL,
+  `imageUrl` VARCHAR(255) DEFAULT NULL,
+  `status` ENUM('draft','published','archived') DEFAULT 'draft',
+  `publishedBy` INT UNSIGNED DEFAULT NULL,
+  `publishedAt` DATETIME DEFAULT NULL,
+  `expiresAt` DATETIME DEFAULT NULL,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_announcements_status` (`status`),
+  KEY `idx_announcements_publishedAt` (`publishedAt`),
+  CONSTRAINT `fk_announcements_publishedBy`
+    FOREIGN KEY (`publishedBy`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================
+-- 19. News Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `news` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `title` VARCHAR(250) NOT NULL,
+  `summary` VARCHAR(500) DEFAULT NULL,
+  `content` LONGTEXT NOT NULL,
+  `imageUrl` VARCHAR(255) DEFAULT NULL,
+  `category` ENUM('market','asset','tokenization','education','company','general') DEFAULT 'general',
+  `status` ENUM('draft','published','archived') DEFAULT 'draft',
+  `authorId` INT UNSIGNED DEFAULT NULL,
+  `publishedAt` DATETIME DEFAULT NULL,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_news_category` (`category`),
+  KEY `idx_news_status` (`status`),
+  KEY `idx_news_publishedAt` (`publishedAt`),
+  CONSTRAINT `fk_news_author`
+    FOREIGN KEY (`authorId`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- 20. Password password reset tokens Table
+-- =========================
+
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    userId INT UNSIGNED NOT NULL,
+    tokenHash VARCHAR(255) NOT NULL,
+    expiresAt DATETIME NOT NULL,
+    usedAt DATETIME DEFAULT NULL,
+    createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+
+    INDEX idx_password_reset_user (userId),
+    INDEX idx_password_reset_token (tokenHash),
+    INDEX idx_password_reset_expiry (expiresAt),
+
+    CONSTRAINT fk_password_reset_user
+        FOREIGN KEY (userId)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- 21. Asset Reviews Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `asset_reviews` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `assetId` INT UNSIGNED NOT NULL,
+  `adminId` INT UNSIGNED NOT NULL,
+
+  `decision` ENUM(
+    'under_review',
+    'changes_required',
+    'approved',
+    'rejected'
+  ) NOT NULL,
+
+  `comments` TEXT DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_asset_reviews_assetId` (`assetId`),
+  KEY `idx_asset_reviews_adminId` (`adminId`),
+  KEY `idx_asset_reviews_decision` (`decision`),
+
+  CONSTRAINT `fk_asset_reviews_asset`
+    FOREIGN KEY (`assetId`) REFERENCES `assets` (`id`)
+    ON DELETE CASCADE,
+
+  CONSTRAINT `fk_asset_reviews_admin`
+    FOREIGN KEY (`adminId`) REFERENCES `users` (`id`)
+    ON DELETE RESTRICT
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- 22. Asset Status History Table
+-- =========================
+CREATE TABLE IF NOT EXISTS `asset_status_history` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `assetId` INT UNSIGNED NOT NULL,
+
+  `previousStatus` ENUM(
+    'draft',
+    'pending',
+    'under_review',
+    'changes_required',
+    'approved',
+    'rejected',
+    'tokenized',
+    'suspended'
+  ) DEFAULT NULL,
+
+  `newStatus` ENUM(
+    'draft',
+    'pending',
+    'under_review',
+    'changes_required',
+    'approved',
+    'rejected',
+    'tokenized',
+    'suspended'
+  ) NOT NULL,
+
+  `changedBy` INT UNSIGNED DEFAULT NULL,
+  `changeReason` TEXT DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_asset_status_history_assetId` (`assetId`),
+  KEY `idx_asset_status_history_changedBy` (`changedBy`),
+
+  CONSTRAINT `fk_asset_status_history_asset`
+    FOREIGN KEY (`assetId`) REFERENCES `assets` (`id`)
+    ON DELETE CASCADE,
+
+  CONSTRAINT `fk_asset_status_history_user`
+    FOREIGN KEY (`changedBy`) REFERENCES `users` (`id`)
+    ON DELETE SET NULL
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 24. User Sessions Table
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `user_sessions` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `userId` INT UNSIGNED NOT NULL,
+
+  `sessionTokenHash` CHAR(64) NOT NULL UNIQUE,
+
+  `deviceName` VARCHAR(150) DEFAULT NULL,
+  `deviceType` ENUM(
+    'mobile',
+    'desktop',
+    'tablet',
+    'unknown'
+  ) NOT NULL DEFAULT 'unknown',
+
+  `ipAddress` VARCHAR(45) DEFAULT NULL,
+  `userAgent` VARCHAR(500) DEFAULT NULL,
+
+  `lastActiveAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  `expiresAt` DATETIME NOT NULL,
+  `revokedAt` DATETIME DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_user_sessions_userId` (`userId`),
+  KEY `idx_user_sessions_expiresAt` (`expiresAt`),
+  KEY `idx_user_sessions_revokedAt` (`revokedAt`),
+
+  CONSTRAINT `fk_user_sessions_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`)
+    ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 25. User Security Settings Table
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `user_security_settings` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `userId` INT UNSIGNED NOT NULL UNIQUE,
+
+  -- Biometric login preference
+  -- Actual biometric authentication is handled locally
+  -- by the user's device.
+  `biometricEnabled` BOOLEAN NOT NULL DEFAULT FALSE,
+
+  -- Two-factor authentication
+  `twoFactorEnabled` BOOLEAN NOT NULL DEFAULT FALSE,
+
+  `twoFactorMethod` ENUM(
+    'authenticator',
+    'email',
+    'sms'
+  ) DEFAULT NULL,
+
+  `twoFactorSecret` VARCHAR(255) DEFAULT NULL,
+
+  `twoFactorVerifiedAt` DATETIME DEFAULT NULL,
+
+  -- Security preferences
+  `loginNotificationEnabled` BOOLEAN NOT NULL DEFAULT TRUE,
+
+  `passwordChangedAt` DATETIME DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_security_settings_userId` (`userId`),
+
+  CONSTRAINT `fk_security_settings_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`)
+    ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 26. Login Activity Table
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `login_activity` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `userId` INT UNSIGNED DEFAULT NULL,
+
+  `eventType` ENUM(
+    'login_success',
+    'login_failed',
+    'logout',
+    'password_changed',
+    'password_reset',
+    'two_factor_enabled',
+    'two_factor_disabled',
+    'session_revoked'
+  ) NOT NULL,
+
+  `deviceName` VARCHAR(150) DEFAULT NULL,
+
+  `deviceType` ENUM(
+    'mobile',
+    'desktop',
+    'tablet',
+    'unknown'
+  ) NOT NULL DEFAULT 'unknown',
+
+  `ipAddress` VARCHAR(45) DEFAULT NULL,
+  `userAgent` VARCHAR(500) DEFAULT NULL,
+
+  `description` VARCHAR(255) DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_login_activity_userId` (`userId`),
+  KEY `idx_login_activity_eventType` (`eventType`),
+  KEY `idx_login_activity_createdAt` (`createdAt`),
+
+  CONSTRAINT `fk_login_activity_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`)
+    ON DELETE SET NULL
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 27. User Preferences Table
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `user_preferences` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `userId` INT UNSIGNED NOT NULL,
+
+  -- Application appearance
+  `theme` ENUM('light','dark','system') NOT NULL DEFAULT 'light',
+
+  -- Application localization
+  `language` VARCHAR(10) NOT NULL DEFAULT 'en',
+  `displayCurrency` VARCHAR(10) NOT NULL DEFAULT 'KES',
+
+  -- Privacy preferences
+  `profileVisibility` ENUM('private','public') NOT NULL DEFAULT 'private',
+
+  `showEmail` BOOLEAN NOT NULL DEFAULT FALSE,
+  `showPhone` BOOLEAN NOT NULL DEFAULT FALSE,
+
+  -- Account preferences
+  `marketingNotificationsEnabled` BOOLEAN NOT NULL DEFAULT FALSE,
+  `emailUpdatesEnabled` BOOLEAN NOT NULL DEFAULT TRUE,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  UNIQUE KEY `uq_user_preferences_userId` (`userId`),
+
+  CONSTRAINT `fk_user_preferences_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`)
+    ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 28. Support Tickets Table
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `support_tickets` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `ticketReference` VARCHAR(100) NOT NULL UNIQUE,
+
+  `userId` INT UNSIGNED NOT NULL,
+
+  `category` ENUM(
+    'account',
+    'kyc',
+    'wallet',
+    'trading',
+    'assets',
+    'payments',
+    'technical',
+    'security',
+    'other'
+  ) NOT NULL DEFAULT 'other',
+
+  `subject` VARCHAR(200) NOT NULL,
+
+  `description` TEXT NOT NULL,
+
+  `priority` ENUM(
+    'low',
+    'normal',
+    'high',
+    'urgent'
+  ) NOT NULL DEFAULT 'normal',
+
+  `status` ENUM(
+    'open',
+    'in_progress',
+    'waiting_for_user',
+    'resolved',
+    'closed'
+  ) NOT NULL DEFAULT 'open',
+
+  `assignedTo` INT UNSIGNED DEFAULT NULL,
+
+  `resolvedAt` DATETIME DEFAULT NULL,
+
+  `closedAt` DATETIME DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_support_tickets_userId` (`userId`),
+  KEY `idx_support_tickets_status` (`status`),
+  KEY `idx_support_tickets_category` (`category`),
+  KEY `idx_support_tickets_priority` (`priority`),
+  KEY `idx_support_tickets_assignedTo` (`assignedTo`),
+  KEY `idx_support_tickets_createdAt` (`createdAt`),
+
+  CONSTRAINT `fk_support_tickets_user`
+    FOREIGN KEY (`userId`) REFERENCES `users` (`id`)
+    ON DELETE CASCADE,
+
+  CONSTRAINT `fk_support_tickets_assignedTo`
+    FOREIGN KEY (`assignedTo`) REFERENCES `users` (`id`)
+    ON DELETE SET NULL
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 29. Support Ticket Messages Table
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `support_ticket_messages` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `ticketId` BIGINT UNSIGNED NOT NULL,
+
+  `senderId` INT UNSIGNED NOT NULL,
+
+  `senderType` ENUM(
+    'user',
+    'admin'
+  ) NOT NULL DEFAULT 'user',
+
+  `message` TEXT NOT NULL,
+
+  `isInternal` BOOLEAN NOT NULL DEFAULT FALSE,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_support_messages_ticketId` (`ticketId`),
+  KEY `idx_support_messages_senderId` (`senderId`),
+  KEY `idx_support_messages_createdAt` (`createdAt`),
+
+  CONSTRAINT `fk_support_messages_ticket`
+    FOREIGN KEY (`ticketId`) REFERENCES `support_tickets` (`id`)
+    ON DELETE CASCADE,
+
+  CONSTRAINT `fk_support_messages_sender`
+    FOREIGN KEY (`senderId`) REFERENCES `users` (`id`)
+    ON DELETE RESTRICT
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 30. Support Ticket Attachments Table
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `support_ticket_attachments` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `ticketId` BIGINT UNSIGNED NOT NULL,
+
+  `messageId` BIGINT UNSIGNED DEFAULT NULL,
+
+  `uploadedBy` INT UNSIGNED NOT NULL,
+
+  `fileName` VARCHAR(255) NOT NULL,
+
+  `fileUrl` VARCHAR(500) NOT NULL,
+
+  `fileType` VARCHAR(100) NOT NULL,
+
+  `fileSize` BIGINT UNSIGNED NOT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_support_attachments_ticketId` (`ticketId`),
+  KEY `idx_support_attachments_messageId` (`messageId`),
+  KEY `idx_support_attachments_uploadedBy` (`uploadedBy`),
+
+  CONSTRAINT `fk_support_attachments_ticket`
+    FOREIGN KEY (`ticketId`) REFERENCES `support_tickets` (`id`)
+    ON DELETE CASCADE,
+
+  CONSTRAINT `fk_support_attachments_message`
+    FOREIGN KEY (`messageId`) REFERENCES `support_ticket_messages` (`id`)
+    ON DELETE CASCADE,
+
+  CONSTRAINT `fk_support_attachments_user`
+    FOREIGN KEY (`uploadedBy`) REFERENCES `users` (`id`)
+    ON DELETE RESTRICT
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 029 USER NOTIFICATION PREFERENCES
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS user_notification_preferences (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  userId INT UNSIGNED NOT NULL,
+
+  notificationType ENUM(
+    'system',
+    'trading',
+    'wallet',
+    'kyc',
+    'asset',
+    'security'
+  ) NOT NULL,
+
+  inAppEnabled BOOLEAN NOT NULL DEFAULT TRUE,
+  emailEnabled BOOLEAN NOT NULL DEFAULT FALSE,
+  smsEnabled BOOLEAN NOT NULL DEFAULT FALSE,
+
+  createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (id),
+
+  UNIQUE KEY unique_user_notification_type (
+    userId,
+    notificationType
+  ),
+
+  KEY idx_notification_preferences_user (userId),
+
+  CONSTRAINT fk_notification_preferences_user
+    FOREIGN KEY (userId)
+    REFERENCES users(id)
+    ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

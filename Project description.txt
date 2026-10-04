@@ -1,0 +1,613 @@
+AssetCoin — Centralized Asset Tokenization Platform
+1. Project Overview
+
+AssetCoin is a centralized digital asset tokenization platform that allows users to register, verify their identity, submit real-world assets for approval, tokenize approved assets, manage token ownership, and participate in a controlled marketplace.
+
+The platform is designed to make real-world assets such as land, livestock, agricultural produce, vehicles, property, and equipment easier to represent, manage, trade, and track digitally.
+
+AssetCoin uses a centralized database-backed ledger architecture rather than a public blockchain. The system provides blockchain-inspired properties such as:
+
+Immutable financial records
+Hash-linked transaction records
+Unique transaction and asset identifiers
+Ownership tracking
+Complete audit trails
+Timestamped records
+Controlled token issuance
+Centralized authorization and administration
+
+The platform therefore provides the traceability and structured ownership model associated with blockchain systems while maintaining centralized control over the application, database, compliance, and marketplace.
+
+2. Core Architecture — Blockchain Logic in SQL
+
+AssetCoin does not require a public blockchain to maintain a verifiable record of ownership and transactions.
+
+Instead, the platform implements blockchain-inspired ledger logic directly within MySQL.
+
+Core principles
+Immutable records
+
+Financial and ownership events are recorded rather than silently overwritten or deleted.
+
+For example:
+
+Deposit
+   ↓
+Wallet Transaction
+   ↓
+Ledger Entry
+   ↓
+Audit Record
+
+If a correction is required, the system creates a new adjustment or reversal record rather than modifying the historical financial event.
+
+Hash chaining
+
+Important records contain hashes linking them to previous records:
+
+Record A
+   │
+   └── hash
+        ↓
+Record B
+   │
+   └── hash
+        ↓
+Record C
+
+This creates a tamper-evident chain of records.
+
+Unique identifiers
+
+The platform uses unique identifiers for:
+
+Users
+Wallets
+Assets
+Tokens
+Listings
+Orders
+Transactions
+Ledger entries
+Audit records
+Ownership tracking
+
+The system maintains relationships such as:
+
+User
+ │
+ ├── Wallet
+ │
+ ├── Assets
+ │
+ └── Token Holdings
+       │
+       └── Token
+             │
+             └── Asset
+
+This allows the platform to determine who owns an asset, who owns tokens representing an asset, and how those ownership records change over time.
+
+3. User Experience
+3.1 Welcome / Loading Screen
+
+The application opens with:
+
+AssetCoin logo
+Short tagline:
+“Unlock the value of your assets securely.”
+Loading animation
+
+The application then determines whether a valid authenticated session exists.
+
+Navigation
+
+Authenticated user → Homepage
+
+Unauthenticated user → Login
+
+4. Authentication
+4.1 Login Page
+
+The login screen contains:
+
+AssetCoin logo
+Welcome message:
+“Welcome back, please log in.”
+Email or Phone Number
+Password
+
+Actions:
+
+Login
+Forgot Password?
+New here? Sign up
+
+Optional future authentication:
+
+Fingerprint
+Face ID / device biometrics
+
+Authentication uses secure session/token management, with the backend remaining authoritative for user identity and account status.
+
+4.2 Sign Up Page
+
+New users create an AssetCoin account using:
+
+First Name
+Last Name
+National ID Number
+Phone Number
+Email Address
+Password
+Confirm Password
+Identity verification
+
+The registration/KYC process may include verification through:
+
+Email OTP
+Phone OTP
+Identity verification
+Identity document submission
+Selfie verification where required
+
+The application clearly explains why National ID information is required, particularly for identity verification and KYC compliance.
+
+Registration initialization
+
+When registration succeeds, the backend creates:
+
+User
+ ├── Wallet
+ ├── Registration Audit Record
+ └── Welcome Notification
+
+All required registration records are created transactionally.
+
+5. Homepage
+
+The Homepage acts as the user's primary dashboard.
+
+It displays:
+
+Content
+News
+Announcements
+Platform updates
+Educational content
+Financial overview
+Fiat wallet balance
+Token holdings
+Total asset value
+
+Financial values are retrieved from the backend rather than calculated independently by the Flutter application.
+
+Notifications
+
+A notification icon appears in the top-right corner.
+
+Selecting it opens the Notification Page.
+
+6. Notifications
+
+The Notification Page displays user-specific notifications.
+
+Notifications can include:
+
+System messages
+Trading events
+Wallet events
+KYC updates
+Asset status updates
+Security notifications
+Notification states
+New
+Viewed
+Filters
+
+Users can filter notifications by:
+
+System
+Trading
+Wallet
+
+The system also supports configurable delivery methods:
+
+In-app
+Email
+SMS
+7. Wallet
+
+The Wallet is the user's centralized financial account.
+
+It manages fiat balances and records wallet-related financial activity.
+
+Wallet Overview
+
+Displays:
+
+Fiat Balance
+Locked Fiat Balance
+Token Value
+Total Asset Value
+Token Holdings
+
+Token holdings can include:
+
+Token name
+Token code
+Quantity
+Locked quantity
+Current token price
+Current value
+Wallet actions
+
+The primary wallet operations are:
+
+Deposit
+Withdraw
+Conversion
+7.1 Wallet Transaction History
+
+Wallet activity includes:
+
+Deposits
+Withdrawals
+Token purchases
+Token sales
+Conversions
+Refunds
+Fees
+Adjustments
+
+Each transaction records information such as:
+
+Transaction reference
+Transaction type
+Amount
+Currency
+Balance before
+Balance after
+Status
+Description
+Timestamp
+
+Financial records are not treated as ordinary application history. They form part of the platform's accounting and audit trail.
+
+8. Assets
+
+The Assets section allows users to submit and manage real-world assets.
+
+Supported asset categories include:
+
+Land
+Livestock
+Agricultural produce
+Vehicles
+Property
+Equipment
+Other approved asset categories
+
+The user can view their submitted assets and their current status.
+
+9. Asset Submission
+Add New Asset
+
+Users provide:
+
+Asset information
+Asset type
+Asset name
+Description
+Location
+Registration information
+Estimated value
+Currency
+Supporting material
+Asset photographs
+Ownership documents
+Registration documents
+Valuation documents
+Legal documents
+Identification documents
+Inspection documents
+
+Users can save an incomplete submission as a draft.
+
+9.1 Asset Approval
+
+Every asset follows an approval lifecycle.
+
+Draft
+  ↓
+Pending
+  ↓
+Under Review
+  ↓
+Approved
+  ↓
+Tokenized
+
+An asset may also become:
+
+Rejected
+Suspended
+
+Rejected assets include a rejection reason.
+
+Administrative approval is required before an asset can proceed to tokenization.
+
+10. Tokenization
+
+Once an asset has been approved, the platform can create a digital token representation of that asset.
+
+A token contains information such as:
+
+Token code
+Token name
+Description
+Total supply
+Available supply
+Token price
+Currency
+Decimal precision
+Token status
+Associated asset
+
+Conceptually:
+
+Real-World Asset
+       ↓
+Approved Asset
+       ↓
+Token Created
+       ↓
+Token Supply
+       ↓
+User Token Holdings
+
+Token ownership is recorded through the token_holdings system.
+
+11. Trading Marketplace
+
+The Trading section provides a marketplace for tokenized assets.
+
+Users can browse available tokenized assets and view relevant information such as:
+
+Asset
+Token
+Token price
+Available quantity
+Listing information
+
+Users can place:
+
+Buy orders
+Sell orders
+
+The marketplace supports:
+
+Search
+Filtering
+Asset categories
+Listing status
+Order status
+Transaction history
+
+Supported asset categories include land, livestock, produce, property, vehicles, equipment, and others approved by the platform.
+
+12. Marketplace Transaction Architecture
+
+Trading is separated from ordinary wallet activity.
+
+The system distinguishes between:
+
+Wallet transactions
+Deposits
+Withdrawals
+Conversions
+Fees
+Refunds
+Token purchases
+Token sales
+Marketplace transactions
+Buyer
+   ↓
+Buy Order
+   ↓
+Listing
+   ↓
+Seller
+   ↓
+Marketplace Transaction
+
+This separation keeps wallet accounting and marketplace execution logically distinct.
+
+13. Profile
+
+The Profile page allows users to manage their account.
+
+Displays:
+
+Profile picture
+Name
+Contact information
+Verification status
+Account information
+
+Users can:
+
+Upload profile picture
+Change profile picture
+Remove profile picture
+
+A Settings icon provides access to account configuration.
+
+14. Settings
+14.1 Your Account
+
+Users can access:
+
+Account Information
+Change Password
+Download Account Data
+Deactivate Account
+Delete Account
+
+Account deletion/deactivation should respect the platform's financial and audit requirements. Historical financial records should not simply disappear because an account is deactivated.
+
+14.2 Notification Preferences
+
+Users can select supported notification delivery methods:
+
+Email
+SMS
+In-app
+
+Notification preferences control how applicable notifications are delivered.
+
+15. Help & Education
+
+AssetCoin includes educational material to help users understand the platform.
+
+Topics include:
+
+What is Tokenization?
+
+Explains how a real-world asset can be represented digitally through tokens.
+
+How do I use my assets for liquidity?
+
+Explains the platform's asset and token marketplace concepts without implying that liquidity or returns are guaranteed.
+
+FAQs
+
+Common questions about:
+
+Accounts
+KYC
+Wallets
+Assets
+Tokenization
+Trading
+Security
+Transactions
+Support
+
+Users can contact platform support for assistance.
+
+16. Security and Audit Architecture
+
+Security is built into the platform rather than treated as a separate feature.
+
+The system maintains:
+
+Authentication
+Password hashing
+JWT-based authentication
+Account status checks
+Secure token storage
+Session restoration
+Audit trail
+
+Important actions can be recorded in audit_logs.
+
+Examples:
+
+USER_REGISTERED
+LOGIN
+PASSWORD_CHANGED
+KYC_SUBMITTED
+ASSET_CREATED
+ASSET_APPROVED
+TOKEN_CREATED
+ORDER_CREATED
+TRANSACTION_COMPLETED
+Financial integrity
+
+Financial operations use transactional database operations so related records are committed together.
+
+For example:
+
+Wallet Balance Update
+       +
+Wallet Transaction
+       +
+Ledger Entry
+       +
+Audit Record
+       ↓
+   COMMIT
+
+If a critical operation fails, the transaction can be rolled back.
+
+17. Core Database Model
+
+The major relationships are:
+
+                         ┌──────────────┐
+                         │    USERS     │
+                         └──────┬───────┘
+                                │
+               ┌────────────────┼────────────────┐
+               │                │                │
+               ▼                ▼                ▼
+          ┌─────────┐      ┌──────────┐    ┌──────────────┐
+          │ WALLETS │      │  ASSETS  │    │ NOTIFICATIONS│
+          └────┬────┘      └────┬─────┘    └──────────────┘
+               │                 │
+               ▼                 ▼
+      ┌─────────────────┐   ┌──────────┐
+      │WALLET_TRANSACTIONS│   │  TOKENS  │
+      └────────┬────────┘   └────┬─────┘
+               │                 │
+               ▼                 ▼
+       ┌──────────────┐   ┌────────────────┐
+       │LEDGER_ENTRIES│   │TOKEN_HOLDINGS  │
+       └──────────────┘   └───────┬────────┘
+                                  │
+                                  ▼
+                           ┌────────────┐
+                           │  ORDERS /  │
+                           │ LISTINGS   │
+                           └─────┬──────┘
+                                 │
+                                 ▼
+                          ┌──────────────┐
+                          │TRANSACTIONS  │
+                          └──────────────┘
+
+                         ┌─────────────┐
+                         │ AUDIT_LOGS  │
+                         └─────────────┘
+18. Centralized Ledger Philosophy
+
+AssetCoin can be described as a centralized asset-tokenization and ledger platform with blockchain-inspired accounting and audit mechanisms.
+
+Rather than relying on a public blockchain for every operation, the platform maintains its own controlled ledger using:
+
+MySQL
+  +
+Transactions
+  +
+Ledger Entries
+  +
+Hash Chains
+  +
+Audit Logs
+  +
+Ownership Records
+
+This provides a structured and traceable record of platform activity while allowing AssetCoin to control:
+
+User accounts
+KYC
+Asset approval
+Token issuance
+Wallet operations
+Marketplace operations
+Transaction processing
+Compliance
+Administrative controls
+
+The key distinction is that AssetCoin's records are centrally managed rather than independently validated by a decentralized blockchain network. The system can therefore provide blockchain-like auditability and ownership tracking without claiming to be a decentralized blockchain itself.
