@@ -17,6 +17,7 @@ import profileRoutes from "./routes/profileRoutes.js";
 import kycRoutes from "./routes/kycRoutes.js";
 import securityRoutes from "./routes/securityRoutes.js";
 import supportRoutes from "./routes/supportRoutes.js";
+import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 
 const app = express();
 
@@ -85,7 +86,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/kyc", kycRoutes);
 app.use("/api/security", securityRoutes);
 app.use("/api/support", supportRoutes);
-
+app.use("/api/admin/auth",adminAuthRoutes,);
 // =========================
 // ROOT ROUTE
 // =========================

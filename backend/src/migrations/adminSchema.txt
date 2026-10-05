@@ -1,0 +1,1095 @@
+-- =========================================================
+-- 030 ADMIN ROLES
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `admin_roles` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `name` VARCHAR(100) NOT NULL,
+  `code` VARCHAR(100) NOT NULL UNIQUE,
+  `description` VARCHAR(255) DEFAULT NULL,
+
+  `isSystemRole` BOOLEAN NOT NULL DEFAULT TRUE,
+  `isActive` BOOLEAN NOT NULL DEFAULT TRUE,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_admin_roles_active` (`isActive`),
+  KEY `idx_admin_roles_code` (`code`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- DEFAULT ADMIN ROLES
+-- =========================================================
+
+INSERT INTO `admin_roles`
+  (`name`, `code`, `description`, `isSystemRole`, `isActive`)
+VALUES
+  (
+    'Super Administrator',
+    'super_admin',
+    'Full access to all administrative functions.',
+    TRUE,
+    TRUE
+  ),
+  (
+    'Asset Officer',
+    'asset_officer',
+    'Reviews and manages customer asset submissions.',
+    TRUE,
+    TRUE
+  ),
+  (
+    'KYC Officer',
+    'kyc_officer',
+    'Reviews and manages customer identity verification.',
+    TRUE,
+    TRUE
+  ),
+  (
+    'Tokenization Officer',
+    'tokenization_officer',
+    'Manages approved asset tokenization workflows.',
+    TRUE,
+    TRUE
+  ),
+  (
+    'Finance Officer',
+    'finance_officer',
+    'Manages wallets, payments and financial operations.',
+    TRUE,
+    TRUE
+  ),
+  (
+    'Trading Officer',
+    'trading_officer',
+    'Monitors marketplace and trading operations.',
+    TRUE,
+    TRUE
+  ),
+  (
+    'Support Officer',
+    'support_officer',
+    'Manages customer support operations.',
+    TRUE,
+    TRUE
+  ),
+  (
+    'Auditor',
+    'auditor',
+    'Read-only access to audit and operational records.',
+    TRUE,
+    TRUE
+  )
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `description` = VALUES(`description`);
+
+
+  -- =========================================================
+-- 031 ADMIN PERMISSIONS
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `admin_permissions` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `name` VARCHAR(150) NOT NULL,
+  `code` VARCHAR(150) NOT NULL UNIQUE,
+
+  `module` VARCHAR(100) NOT NULL,
+  `action` VARCHAR(100) NOT NULL,
+
+  `description` VARCHAR(255) DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_admin_permissions_module` (`module`),
+  KEY `idx_admin_permissions_action` (`action`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- DASHBOARD
+-- =========================================================
+
+INSERT INTO `admin_permissions`
+  (`name`, `code`, `module`, `action`, `description`)
+VALUES
+  ('View Dashboard', 'dashboard.view', 'dashboard', 'view',
+   'View the administration dashboard.'),
+
+-- =========================================================
+-- USERS
+-- =========================================================
+
+  ('View Users', 'users.view', 'users', 'view',
+   'View customer accounts.'),
+
+  ('Create Users', 'users.create', 'users', 'create',
+   'Create customer accounts.'),
+
+  ('Update Users', 'users.update', 'users', 'update',
+   'Update customer account information.'),
+
+  ('Suspend Users', 'users.suspend', 'users', 'suspend',
+   'Suspend customer accounts.'),
+
+  ('Deactivate Users', 'users.deactivate', 'users', 'deactivate',
+   'Deactivate customer accounts.'),
+
+-- =========================================================
+-- KYC
+-- =========================================================
+
+  ('View KYC', 'kyc.view', 'kyc', 'view',
+   'View KYC submissions.'),
+
+  ('Review KYC', 'kyc.review', 'kyc', 'review',
+   'Review KYC submissions.'),
+
+  ('Approve KYC', 'kyc.approve', 'kyc', 'approve',
+   'Approve KYC submissions.'),
+
+  ('Reject KYC', 'kyc.reject', 'kyc', 'reject',
+   'Reject KYC submissions.'),
+
+-- =========================================================
+-- ASSETS
+-- =========================================================
+
+  ('View Assets', 'assets.view', 'assets', 'view',
+   'View customer assets.'),
+
+  ('Review Assets', 'assets.review', 'assets', 'review',
+   'Review submitted assets.'),
+
+  ('Approve Assets', 'assets.approve', 'assets', 'approve',
+   'Approve assets for tokenization.'),
+
+  ('Reject Assets', 'assets.reject', 'assets', 'reject',
+   'Reject asset submissions.'),
+
+  ('Assign Assets', 'assets.assign', 'assets', 'assign',
+   'Assign assets to staff members.'),
+
+  ('Suspend Assets', 'assets.suspend', 'assets', 'suspend',
+   'Suspend tokenized or approved assets.'),
+
+-- =========================================================
+-- TOKENIZATION
+-- =========================================================
+
+  ('View Tokenization', 'tokenization.view', 'tokenization', 'view',
+   'View tokenization records.'),
+
+  ('Create Tokenization', 'tokenization.create', 'tokenization', 'create',
+   'Create tokenization proposals.'),
+
+  ('Approve Tokenization', 'tokenization.approve', 'tokenization', 'approve',
+   'Approve tokenization proposals.'),
+
+  ('Reject Tokenization', 'tokenization.reject', 'tokenization', 'reject',
+   'Reject tokenization proposals.'),
+
+  ('Suspend Tokenization', 'tokenization.suspend', 'tokenization', 'suspend',
+   'Suspend tokenized assets.'),
+
+-- =========================================================
+-- TRADING
+-- =========================================================
+
+  ('View Trading', 'trading.view', 'trading', 'view',
+   'View marketplace activity.'),
+
+  ('Manage Trading', 'trading.manage', 'trading', 'manage',
+   'Manage marketplace operations.'),
+
+  ('Suspend Listings', 'trading.suspend_listings', 'trading', 'suspend_listings',
+   'Suspend marketplace listings.'),
+
+  ('Manage Orders', 'trading.manage_orders', 'trading', 'manage_orders',
+   'Manage marketplace orders.'),
+
+-- =========================================================
+-- FINANCE
+-- =========================================================
+
+  ('View Finance', 'finance.view', 'finance', 'view',
+   'View financial information.'),
+
+  ('Manage Finance', 'finance.manage', 'finance', 'manage',
+   'Manage financial operations.'),
+
+  ('Approve Finance Actions', 'finance.approve', 'finance', 'approve',
+   'Approve sensitive financial operations.'),
+
+  ('View Wallets', 'wallets.view', 'wallets', 'view',
+   'View customer wallets.'),
+
+  ('Manage Wallets', 'wallets.manage', 'wallets', 'manage',
+   'Manage authorized wallet operations.'),
+
+-- =========================================================
+-- LEDGER
+-- =========================================================
+
+  ('View Ledger', 'ledger.view', 'ledger', 'view',
+   'View centralized ledger entries.'),
+
+  ('Export Ledger', 'ledger.export', 'ledger', 'export',
+   'Export ledger records.'),
+
+-- =========================================================
+-- SUPPORT
+-- =========================================================
+
+  ('View Support Tickets', 'support.view', 'support', 'view',
+   'View customer support tickets.'),
+
+  ('Manage Support Tickets', 'support.manage', 'support', 'manage',
+   'Manage customer support tickets.'),
+
+  ('Assign Support Tickets', 'support.assign', 'support', 'assign',
+   'Assign support tickets.'),
+
+-- =========================================================
+-- NOTIFICATIONS
+-- =========================================================
+
+  ('View Notifications', 'notifications.view', 'notifications', 'view',
+   'View administrative notifications.'),
+
+  ('Create Notifications', 'notifications.create', 'notifications', 'create',
+   'Create notifications.'),
+
+  ('Send Notifications', 'notifications.send', 'notifications', 'send',
+   'Send notifications to customers.'),
+
+-- =========================================================
+-- CONTENT
+-- =========================================================
+
+  ('View Content', 'content.view', 'content', 'view',
+   'View announcements and news.'),
+
+  ('Create Content', 'content.create', 'content', 'create',
+   'Create announcements and news.'),
+
+  ('Update Content', 'content.update', 'content', 'update',
+   'Update announcements and news.'),
+
+  ('Publish Content', 'content.publish', 'content', 'publish',
+   'Publish announcements and news.'),
+
+-- =========================================================
+-- STAFF
+-- =========================================================
+
+  ('View Staff', 'staff.view', 'staff', 'view',
+   'View administrative staff.'),
+
+  ('Create Staff', 'staff.create', 'staff', 'create',
+   'Create administrative staff accounts.'),
+
+  ('Update Staff', 'staff.update', 'staff', 'update',
+   'Update administrative staff.'),
+
+  ('Suspend Staff', 'staff.suspend', 'staff', 'suspend',
+   'Suspend administrative staff.'),
+
+  ('Manage Staff Permissions', 'staff.permissions', 'staff', 'permissions',
+   'Manage staff roles and permissions.'),
+
+-- =========================================================
+-- SETTINGS
+-- =========================================================
+
+  ('View Settings', 'settings.view', 'settings', 'view',
+   'View administration settings.'),
+
+  ('Update Settings', 'settings.update', 'settings', 'update',
+   'Update administration settings.'),
+
+-- =========================================================
+-- AUDIT
+-- =========================================================
+
+  ('View Audit Logs', 'audit.view', 'audit', 'view',
+   'View administrative audit logs.'),
+
+  ('Export Audit Logs', 'audit.export', 'audit', 'export',
+   'Export administrative audit logs.')
+
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `description` = VALUES(`description`);
+
+
+  -- =========================================================
+-- 032 ADMIN ROLE PERMISSIONS
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `admin_role_permissions` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `roleId` INT UNSIGNED NOT NULL,
+  `permissionId` INT UNSIGNED NOT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  UNIQUE KEY `uq_admin_role_permission`
+    (`roleId`, `permissionId`),
+
+  KEY `idx_admin_role_permissions_role`
+    (`roleId`),
+
+  KEY `idx_admin_role_permissions_permission`
+    (`permissionId`),
+
+  CONSTRAINT `fk_admin_role_permissions_role`
+    FOREIGN KEY (`roleId`)
+    REFERENCES `admin_roles` (`id`)
+    ON DELETE CASCADE,
+
+  CONSTRAINT `fk_admin_role_permissions_permission`
+    FOREIGN KEY (`permissionId`)
+    REFERENCES `admin_permissions` (`id`)
+    ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- SUPER ADMINISTRATOR
+-- =========================================================
+
+INSERT INTO `admin_role_permissions`
+  (`roleId`, `permissionId`)
+SELECT
+  r.id,
+  p.id
+FROM `admin_roles` r
+CROSS JOIN `admin_permissions` p
+WHERE r.code = 'super_admin'
+ON DUPLICATE KEY UPDATE
+  `roleId` = VALUES(`roleId`);
+
+
+-- =========================================================
+-- ASSET OFFICER
+-- =========================================================
+
+INSERT INTO `admin_role_permissions`
+  (`roleId`, `permissionId`)
+SELECT
+  r.id,
+  p.id
+FROM `admin_roles` r
+JOIN `admin_permissions` p
+WHERE r.code = 'asset_officer'
+AND p.code IN (
+  'dashboard.view',
+  'assets.view',
+  'assets.review',
+  'assets.approve',
+  'assets.reject',
+  'assets.assign'
+)
+ON DUPLICATE KEY UPDATE
+  `roleId` = VALUES(`roleId`);
+
+
+-- =========================================================
+-- KYC OFFICER
+-- =========================================================
+
+INSERT INTO `admin_role_permissions`
+  (`roleId`, `permissionId`)
+SELECT
+  r.id,
+  p.id
+FROM `admin_roles` r
+JOIN `admin_permissions` p
+WHERE r.code = 'kyc_officer'
+AND p.code IN (
+  'dashboard.view',
+  'users.view',
+  'kyc.view',
+  'kyc.review',
+  'kyc.approve',
+  'kyc.reject'
+)
+ON DUPLICATE KEY UPDATE
+  `roleId` = VALUES(`roleId`);
+
+
+-- =========================================================
+-- TOKENIZATION OFFICER
+-- =========================================================
+
+INSERT INTO `admin_role_permissions`
+  (`roleId`, `permissionId`)
+SELECT
+  r.id,
+  p.id
+FROM `admin_roles` r
+JOIN `admin_permissions` p
+WHERE r.code = 'tokenization_officer'
+AND p.code IN (
+  'dashboard.view',
+  'assets.view',
+  'tokenization.view',
+  'tokenization.create',
+  'tokenization.approve',
+  'tokenization.reject',
+  'tokenization.suspend'
+)
+ON DUPLICATE KEY UPDATE
+  `roleId` = VALUES(`roleId`);
+
+
+-- =========================================================
+-- FINANCE OFFICER
+-- =========================================================
+
+INSERT INTO `admin_role_permissions`
+  (`roleId`, `permissionId`)
+SELECT
+  r.id,
+  p.id
+FROM `admin_roles` r
+JOIN `admin_permissions` p
+WHERE r.code = 'finance_officer'
+AND p.code IN (
+  'dashboard.view',
+  'finance.view',
+  'finance.manage',
+  'finance.approve',
+  'wallets.view',
+  'wallets.manage',
+  'ledger.view',
+  'ledger.export'
+)
+ON DUPLICATE KEY UPDATE
+  `roleId` = VALUES(`roleId`);
+
+
+-- =========================================================
+-- TRADING OFFICER
+-- =========================================================
+
+INSERT INTO `admin_role_permissions`
+  (`roleId`, `permissionId`)
+SELECT
+  r.id,
+  p.id
+FROM `admin_roles` r
+JOIN `admin_permissions` p
+WHERE r.code = 'trading_officer'
+AND p.code IN (
+  'dashboard.view',
+  'trading.view',
+  'trading.manage',
+  'trading.suspend_listings',
+  'trading.manage_orders'
+)
+ON DUPLICATE KEY UPDATE
+  `roleId` = VALUES(`roleId`);
+
+
+-- =========================================================
+-- SUPPORT OFFICER
+-- =========================================================
+
+INSERT INTO `admin_role_permissions`
+  (`roleId`, `permissionId`)
+SELECT
+  r.id,
+  p.id
+FROM `admin_roles` r
+JOIN `admin_permissions` p
+WHERE r.code = 'support_officer'
+AND p.code IN (
+  'dashboard.view',
+  'users.view',
+  'support.view',
+  'support.manage',
+  'support.assign',
+  'notifications.view',
+  'notifications.create'
+)
+ON DUPLICATE KEY UPDATE
+  `roleId` = VALUES(`roleId`);
+
+
+-- =========================================================
+-- AUDITOR
+-- =========================================================
+
+INSERT INTO `admin_role_permissions`
+  (`roleId`, `permissionId`)
+SELECT
+  r.id,
+  p.id
+FROM `admin_roles` r
+JOIN `admin_permissions` p
+WHERE r.code = 'auditor'
+AND p.code IN (
+  'dashboard.view',
+  'users.view',
+  'kyc.view',
+  'assets.view',
+  'tokenization.view',
+  'trading.view',
+  'finance.view',
+  'wallets.view',
+  'ledger.view',
+  'ledger.export',
+  'audit.view',
+  'audit.export',
+  'support.view',
+  'notifications.view',
+  'content.view'
+)
+ON DUPLICATE KEY UPDATE
+  `roleId` = VALUES(`roleId`);
+
+
+
+  -- =========================================================
+-- 033 ADMIN STAFF
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `admin_staff` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `firstName` VARCHAR(100) NOT NULL,
+  `lastName` VARCHAR(100) NOT NULL,
+
+  `email` VARCHAR(150) NOT NULL UNIQUE,
+  `phone` VARCHAR(20) DEFAULT NULL UNIQUE,
+
+  `passwordHash` VARCHAR(255) NOT NULL,
+
+  `roleId` INT UNSIGNED NOT NULL,
+
+  `profilePhotoUrl` VARCHAR(255) DEFAULT NULL,
+
+  `accountStatus` ENUM(
+    'active',
+    'suspended',
+    'deactivated',
+    'locked'
+  ) NOT NULL DEFAULT 'active',
+
+  `lastLoginAt` DATETIME DEFAULT NULL,
+
+  `passwordChangedAt` DATETIME DEFAULT NULL,
+
+  `failedLoginAttempts` INT UNSIGNED NOT NULL DEFAULT 0,
+
+  `lockedUntil` DATETIME DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_admin_staff_roleId` (`roleId`),
+  KEY `idx_admin_staff_status` (`accountStatus`),
+  KEY `idx_admin_staff_lastLogin` (`lastLoginAt`),
+
+  CONSTRAINT `fk_admin_staff_role`
+    FOREIGN KEY (`roleId`)
+    REFERENCES `admin_roles` (`id`)
+    ON DELETE RESTRICT
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 034 ADMIN STAFF PERMISSIONS
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `admin_staff_permissions` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `staffId` INT UNSIGNED NOT NULL,
+  `permissionId` INT UNSIGNED NOT NULL,
+
+  `accessType` ENUM(
+    'grant',
+    'deny'
+  ) NOT NULL DEFAULT 'grant',
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  UNIQUE KEY `uq_admin_staff_permission`
+    (`staffId`, `permissionId`),
+
+  KEY `idx_admin_staff_permissions_staff`
+    (`staffId`),
+
+  KEY `idx_admin_staff_permissions_permission`
+    (`permissionId`),
+
+  CONSTRAINT `fk_admin_staff_permissions_staff`
+    FOREIGN KEY (`staffId`)
+    REFERENCES `admin_staff` (`id`)
+    ON DELETE CASCADE,
+
+  CONSTRAINT `fk_admin_staff_permissions_permission`
+    FOREIGN KEY (`permissionId`)
+    REFERENCES `admin_permissions` (`id`)
+    ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 035 ADMIN SESSIONS
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `admin_sessions` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `staffId` INT UNSIGNED NOT NULL,
+
+  `sessionTokenHash` CHAR(64) NOT NULL UNIQUE,
+
+  `deviceName` VARCHAR(150) DEFAULT NULL,
+
+  `deviceType` ENUM(
+    'desktop',
+    'tablet',
+    'mobile',
+    'unknown'
+  ) NOT NULL DEFAULT 'desktop',
+
+  `ipAddress` VARCHAR(45) DEFAULT NULL,
+
+  `userAgent` VARCHAR(500) DEFAULT NULL,
+
+  `lastActiveAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  `expiresAt` DATETIME NOT NULL,
+
+  `revokedAt` DATETIME DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_admin_sessions_staffId` (`staffId`),
+  KEY `idx_admin_sessions_expiresAt` (`expiresAt`),
+  KEY `idx_admin_sessions_revokedAt` (`revokedAt`),
+
+  CONSTRAINT `fk_admin_sessions_staff`
+    FOREIGN KEY (`staffId`)
+    REFERENCES `admin_staff` (`id`)
+    ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 036 ADMIN PASSWORD RESET TOKENS
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `admin_password_reset_tokens` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `staffId` INT UNSIGNED NOT NULL,
+
+  `tokenHash` VARCHAR(255) NOT NULL,
+
+  `expiresAt` DATETIME NOT NULL,
+
+  `usedAt` DATETIME DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_admin_password_reset_staff`
+    (`staffId`),
+
+  KEY `idx_admin_password_reset_token`
+    (`tokenHash`),
+
+  KEY `idx_admin_password_reset_expiry`
+    (`expiresAt`),
+
+  CONSTRAINT `fk_admin_password_reset_staff`
+    FOREIGN KEY (`staffId`)
+    REFERENCES `admin_staff` (`id`)
+    ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 037 ADMIN LOGIN ACTIVITY
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `admin_login_activity` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `staffId` INT UNSIGNED DEFAULT NULL,
+
+  `eventType` ENUM(
+    'login_success',
+    'login_failed',
+    'logout',
+    'password_changed',
+    'password_reset',
+    'session_revoked',
+    'account_locked',
+    'account_unlocked'
+  ) NOT NULL,
+
+  `ipAddress` VARCHAR(45) DEFAULT NULL,
+
+  `userAgent` VARCHAR(500) DEFAULT NULL,
+
+  `description` VARCHAR(255) DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_admin_login_staffId` (`staffId`),
+  KEY `idx_admin_login_eventType` (`eventType`),
+  KEY `idx_admin_login_createdAt` (`createdAt`),
+
+  CONSTRAINT `fk_admin_login_staff`
+    FOREIGN KEY (`staffId`)
+    REFERENCES `admin_staff` (`id`)
+    ON DELETE SET NULL
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 038 ADMIN AUDIT LOGS
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `admin_audit_logs` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `staffId` INT UNSIGNED DEFAULT NULL,
+
+  `action` VARCHAR(150) NOT NULL,
+
+  `module` VARCHAR(100) NOT NULL,
+
+  `entityType` VARCHAR(100) DEFAULT NULL,
+
+  `entityId` BIGINT UNSIGNED DEFAULT NULL,
+
+  `oldValues` JSON DEFAULT NULL,
+
+  `newValues` JSON DEFAULT NULL,
+
+  `ipAddress` VARCHAR(45) DEFAULT NULL,
+
+  `userAgent` VARCHAR(500) DEFAULT NULL,
+
+  `previousHash` CHAR(64) DEFAULT NULL,
+
+  `logHash` CHAR(64) NOT NULL UNIQUE,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_admin_audit_staffId` (`staffId`),
+
+  KEY `idx_admin_audit_module` (`module`),
+
+  KEY `idx_admin_audit_entity`
+    (`entityType`, `entityId`),
+
+  KEY `idx_admin_audit_createdAt`
+    (`createdAt`),
+
+  CONSTRAINT `fk_admin_audit_staff`
+    FOREIGN KEY (`staffId`)
+    REFERENCES `admin_staff` (`id`)
+    ON DELETE SET NULL
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 039 ADMIN ACTION APPROVALS
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `admin_action_approvals` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `actionReference` VARCHAR(100) NOT NULL UNIQUE,
+
+  `module` VARCHAR(100) NOT NULL,
+
+  `actionType` VARCHAR(100) NOT NULL,
+
+  `entityType` VARCHAR(100) NOT NULL,
+
+  `entityId` BIGINT UNSIGNED NOT NULL,
+
+  `requestedBy` INT UNSIGNED NOT NULL,
+
+  `reviewedBy` INT UNSIGNED DEFAULT NULL,
+
+  `status` ENUM(
+    'pending',
+    'approved',
+    'rejected',
+    'cancelled',
+    'expired'
+  ) NOT NULL DEFAULT 'pending',
+
+  `requestData` JSON DEFAULT NULL,
+
+  `reviewComments` TEXT DEFAULT NULL,
+
+  `requestedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  `reviewedAt` DATETIME DEFAULT NULL,
+
+  `expiresAt` DATETIME DEFAULT NULL,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_admin_approval_module`
+    (`module`),
+
+  KEY `idx_admin_approval_entity`
+    (`entityType`, `entityId`),
+
+  KEY `idx_admin_approval_requestedBy`
+    (`requestedBy`),
+
+  KEY `idx_admin_approval_reviewedBy`
+    (`reviewedBy`),
+
+  KEY `idx_admin_approval_status`
+    (`status`),
+
+  KEY `idx_admin_approval_requestedAt`
+    (`requestedAt`),
+
+  CONSTRAINT `fk_admin_approval_requestedBy`
+    FOREIGN KEY (`requestedBy`)
+    REFERENCES `admin_staff` (`id`)
+    ON DELETE RESTRICT,
+
+  CONSTRAINT `fk_admin_approval_reviewedBy`
+    FOREIGN KEY (`reviewedBy`)
+    REFERENCES `admin_staff` (`id`)
+    ON DELETE SET NULL
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================================================
+-- 040 ADMIN ASSIGNMENTS
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `admin_assignments` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `assignmentReference` VARCHAR(100) NOT NULL UNIQUE,
+
+  `module` VARCHAR(100) NOT NULL,
+
+  `entityType` VARCHAR(100) NOT NULL,
+
+  `entityId` BIGINT UNSIGNED NOT NULL,
+
+  `assignedTo` INT UNSIGNED NOT NULL,
+
+  `assignedBy` INT UNSIGNED NOT NULL,
+
+  `status` ENUM(
+    'assigned',
+    'in_progress',
+    'completed',
+    'cancelled'
+  ) NOT NULL DEFAULT 'assigned',
+
+  `priority` ENUM(
+    'low',
+    'normal',
+    'high',
+    'urgent'
+  ) NOT NULL DEFAULT 'normal',
+
+  `notes` TEXT DEFAULT NULL,
+
+  `assignedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  `startedAt` DATETIME DEFAULT NULL,
+
+  `completedAt` DATETIME DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_admin_assignments_module`
+    (`module`),
+
+  KEY `idx_admin_assignments_entity`
+    (`entityType`, `entityId`),
+
+  KEY `idx_admin_assignments_assignedTo`
+    (`assignedTo`),
+
+  KEY `idx_admin_assignments_assignedBy`
+    (`assignedBy`),
+
+  KEY `idx_admin_assignments_status`
+    (`status`),
+
+  KEY `idx_admin_assignments_priority`
+    (`priority`),
+
+  CONSTRAINT `fk_admin_assignments_assignedTo`
+    FOREIGN KEY (`assignedTo`)
+    REFERENCES `admin_staff` (`id`)
+    ON DELETE RESTRICT,
+
+  CONSTRAINT `fk_admin_assignments_assignedBy`
+    FOREIGN KEY (`assignedBy`)
+    REFERENCES `admin_staff` (`id`)
+    ON DELETE RESTRICT
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- =========================================================
+-- 041 ADMIN NOTIFICATIONS
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `admin_notifications` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `staffId` INT UNSIGNED DEFAULT NULL,
+
+  `type` ENUM(
+    'system',
+    'security',
+    'workflow',
+    'approval',
+    'asset',
+    'kyc',
+    'tokenization',
+    'trading',
+    'finance',
+    'support'
+  ) NOT NULL DEFAULT 'system',
+
+  `title` VARCHAR(200) NOT NULL,
+
+  `message` TEXT NOT NULL,
+
+  `referenceType` VARCHAR(100) DEFAULT NULL,
+
+  `referenceId` BIGINT UNSIGNED DEFAULT NULL,
+
+  `status` ENUM(
+    'new',
+    'read',
+    'archived'
+  ) NOT NULL DEFAULT 'new',
+
+  `readAt` DATETIME DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_admin_notifications_staffId`
+    (`staffId`),
+
+  KEY `idx_admin_notifications_type`
+    (`type`),
+
+  KEY `idx_admin_notifications_status`
+    (`status`),
+
+  KEY `idx_admin_notifications_reference`
+    (`referenceType`, `referenceId`),
+
+  KEY `idx_admin_notifications_createdAt`
+    (`createdAt`),
+
+  CONSTRAINT `fk_admin_notifications_staff`
+    FOREIGN KEY (`staffId`)
+    REFERENCES `admin_staff` (`id`)
+    ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+
+-- =========================================================
+-- 042 ADMIN SETTINGS
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS `admin_settings` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  `settingKey` VARCHAR(150) NOT NULL UNIQUE,
+
+  `settingValue` TEXT DEFAULT NULL,
+
+  `settingType` ENUM(
+    'string',
+    'integer',
+    'decimal',
+    'boolean',
+    'json'
+  ) NOT NULL DEFAULT 'string',
+
+  `description` VARCHAR(255) DEFAULT NULL,
+
+  `isSensitive` BOOLEAN NOT NULL DEFAULT FALSE,
+
+  `updatedBy` INT UNSIGNED DEFAULT NULL,
+
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+
+  KEY `idx_admin_settings_updatedBy`
+    (`updatedBy`),
+
+  CONSTRAINT `fk_admin_settings_updatedBy`
+    FOREIGN KEY (`updatedBy`)
+    REFERENCES `admin_staff` (`id`)
+    ON DELETE SET NULL
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
