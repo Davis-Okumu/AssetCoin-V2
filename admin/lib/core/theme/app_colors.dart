@@ -16,6 +16,17 @@ class AppColors {
   static const primaryRedLight = Color(0xFFFFEBEE);
 
   // =========================================================
+  // GENERIC THEME ALIASES
+  // =========================================================
+  //
+  // These aliases allow widgets/theme files to use generic
+  // names such as AppColors.primary and AppColors.secondary
+  // while preserving the AssetCoin brand color definitions.
+
+  static const primary = primaryBlue;
+  static const secondary = primaryRed;
+
+  // =========================================================
   // BACKGROUNDS
   // =========================================================
 

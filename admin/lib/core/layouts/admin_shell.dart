@@ -1,11 +1,121 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/authentication/domain/admin_user.dart';
+import '../../features/authentication/presentation/controllers/admin_auth_controller.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_dimensions.dart';
 import '../theme/app_text_styles.dart';
 
-class AdminShell extends StatefulWidget {
+// =========================================================
+// NAVIGATION ITEMS
+// =========================================================
+
+final mainNavigationItems = <_NavigationItem>[
+  const _NavigationItem(
+    label: 'Dashboard',
+    icon: Icons.dashboard_outlined,
+    route: '/',
+    permission: 'dashboard.view',
+  ),
+  const _NavigationItem(
+    label: 'Users',
+    icon: Icons.people_outline,
+    route: '/users',
+    permission: 'users.view',
+  ),
+  const _NavigationItem(
+    label: 'KYC',
+    icon: Icons.verified_user_outlined,
+    route: '/kyc',
+    permission: 'kyc.view',
+  ),
+  const _NavigationItem(
+    label: 'Assets',
+    icon: Icons.inventory_2_outlined,
+    route: '/assets',
+    permission: 'assets.view',
+  ),
+  const _NavigationItem(
+    label: 'Tokenization',
+    icon: Icons.token_outlined,
+    route: '/tokenization',
+    permission: 'tokenization.view',
+  ),
+  const _NavigationItem(
+    label: 'Trading',
+    icon: Icons.swap_horiz_outlined,
+    route: '/trading',
+    permission: 'trading.view',
+  ),
+  const _NavigationItem(
+    label: 'Finance',
+    icon: Icons.account_balance_wallet_outlined,
+    route: '/finance',
+    permission: 'finance.view',
+  ),
+  const _NavigationItem(
+    label: 'Ledger',
+    icon: Icons.receipt_long_outlined,
+    route: '/ledger',
+    permission: 'ledger.view',
+  ),
+];
+
+final communicationNavigationItems = <_NavigationItem>[
+  const _NavigationItem(
+    label: 'Notifications',
+    icon: Icons.notifications_none_outlined,
+    route: '/notifications',
+    permission: 'notifications.view',
+  ),
+  const _NavigationItem(
+    label: 'Content',
+    icon: Icons.article_outlined,
+    route: '/content',
+    permission: 'content.view',
+  ),
+];
+
+final administrationNavigationItems = <_NavigationItem>[
+  const _NavigationItem(
+    label: 'Staff',
+    icon: Icons.admin_panel_settings_outlined,
+    route: '/staff',
+    permission: 'staff.view',
+  ),
+  const _NavigationItem(
+    label: 'Settings',
+    icon: Icons.settings_outlined,
+    route: '/settings',
+    permission: 'settings.view',
+  ),
+];
+
+// =========================================================
+// NAVIGATION ITEM MODEL
+// =========================================================
+
+class _NavigationItem {
+  const _NavigationItem({
+    required this.label,
+    required this.icon,
+    required this.route,
+    this.permission,
+  });
+
+  final String label;
+  final IconData icon;
+  final String route;
+  final String? permission;
+}
+
+// =========================================================
+// ADMIN SHELL
+// =========================================================
+
+class AdminShell extends ConsumerStatefulWidget {
   const AdminShell({
     super.key,
     required this.child,
@@ -14,44 +124,124 @@ class AdminShell extends StatefulWidget {
   });
 
   final Widget child;
+
   final String title;
+
   final String? subtitle;
 
   @override
-  State<AdminShell> createState() => _AdminShellState();
+  ConsumerState<AdminShell> createState() => _AdminShellState();
 }
 
-class _AdminShellState extends State<AdminShell> {
+class _AdminShellState extends ConsumerState<AdminShell> {
   bool _isSidebarCollapsed = false;
 
-  void _toggleSidebar() {
-    setState(() {
-      _isSidebarCollapsed = !_isSidebarCollapsed;
-    });
+  // =========================================================
+  // RESPONSIVE BREAKPOINTS
+  // =========================================================
+
+  static const double _mobileBreakpoint = 700;
+
+  static const double _desktopBreakpoint = 1100;
+
+  bool _isMobile(double width) {
+    return width < _mobileBreakpoint;
+  }
+
+  bool _isDesktop(double width) {
+    return width >= _desktopBreakpoint;
   }
 
   // =========================================================
-  // ROUTE NAVIGATION
+  // ADMIN USER
   // =========================================================
 
-  void _navigateTo(String route) {
-    if (GoRouterState.of(context).uri.path == route) {
+  AdminUser? get _currentAdmin {
+    return ref.watch(adminAuthControllerProvider).value;
+  }
+
+  // =========================================================
+  // PERMISSIONS
+  // =========================================================
+
+  bool _hasPermission(AdminUser? admin, String? permission) {
+    if (permission == null || permission.isEmpty) {
+      return true;
+    }
+
+    if (admin == null) {
+      return false;
+    }
+
+    if (admin.isSuperAdministrator) {
+      return true;
+    }
+
+    return admin.hasPermission(permission);
+  }
+
+  List<_NavigationItem> _visibleItems(
+    List<_NavigationItem> items,
+    AdminUser? admin,
+  ) {
+    return items
+        .where((item) => _hasPermission(admin, item.permission))
+        .toList();
+  }
+
+  // =========================================================
+  // LOGOUT
+  // =========================================================
+
+  Future<void> _logout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Sign out'),
+          content: const Text(
+            'Are you sure you want to sign out of the admin dashboard?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: const Text('Sign out'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout != true) {
       return;
+    }
+
+    await ref.read(adminAuthControllerProvider.notifier).logout();
+  }
+
+  // =========================================================
+  // NAVIGATION
+  // =========================================================
+
+  void _navigateTo(String route, {bool closeDrawer = false}) {
+    if (closeDrawer && Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
     }
 
     context.go(route);
   }
 
-  bool _isRouteActive(String route) {
-    final currentPath = GoRouterState.of(context).uri.path;
-
-    if (route == '/') {
-      return currentPath == '/';
-    }
-
-    return currentPath == route ||
-        currentPath.startsWith('$route/');
-  }
+  // =========================================================
+  // BUILD
+  // =========================================================
 
   @override
   Widget build(BuildContext context) {
@@ -59,17 +249,11 @@ class _AdminShellState extends State<AdminShell> {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
 
-        final isMobile = width < 700;
-        final isTablet = width >= 700 && width < 1100;
-
-        if (isMobile) {
+        if (_isMobile(width)) {
           return _buildMobileLayout(context);
         }
 
-        return _buildDesktopLayout(
-          context,
-          isTablet: isTablet,
-        );
+        return _buildDesktopLayout(context, isDesktop: _isDesktop(width));
       },
     );
   }
@@ -80,40 +264,8 @@ class _AdminShellState extends State<AdminShell> {
 
   Widget _buildMobileLayout(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-
-      drawer: _buildMobileDrawer(context),
-
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-
-        leading: Builder(
-          builder: (context) {
-            return IconButton(
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-              icon: const Icon(
-                Icons.menu_rounded,
-                color: AppColors.textPrimary,
-              ),
-            );
-          },
-        ),
-
-        title: _buildBrand(),
-
-        actions: [
-          _buildNotificationButton(),
-
-          const SizedBox(
-            width: AppDimensions.spacing8,
-          ),
-        ],
-      ),
-
+      appBar: _buildMobileAppBar(context),
+      drawer: _buildDrawer(context),
       body: _buildContent(context),
     );
   }
@@ -122,34 +274,16 @@ class _AdminShellState extends State<AdminShell> {
   // DESKTOP / TABLET LAYOUT
   // =========================================================
 
-  Widget _buildDesktopLayout(
-    BuildContext context, {
-    required bool isTablet,
-  }) {
-    final sidebarCollapsed =
-        isTablet ? true : _isSidebarCollapsed;
-
+  Widget _buildDesktopLayout(BuildContext context, {required bool isDesktop}) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-
       body: Row(
         children: [
-          _buildSidebar(
-            context,
-            collapsed: sidebarCollapsed,
-          ),
-
+          _buildSidebar(context, collapsed: !isDesktop || _isSidebarCollapsed),
           Expanded(
             child: Column(
               children: [
-                _buildTopBar(
-                  context,
-                  isTablet: isTablet,
-                ),
-
-                Expanded(
-                  child: _buildContent(context),
-                ),
+                _buildTopBar(context),
+                Expanded(child: _buildContent(context)),
               ],
             ),
           ),
@@ -159,144 +293,100 @@ class _AdminShellState extends State<AdminShell> {
   }
 
   // =========================================================
+  // MOBILE APP BAR
+  // =========================================================
+
+  PreferredSizeWidget _buildMobileAppBar(BuildContext context) {
+    return AppBar(
+      elevation: 0,
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      leading: Builder(
+        builder: (context) {
+          return IconButton(
+            tooltip: 'Open navigation',
+            icon: const Icon(Icons.menu_rounded),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          );
+        },
+      ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(widget.title, style: AppTextStyles.titleMedium),
+          if (widget.subtitle != null)
+            Text(widget.subtitle!, style: AppTextStyles.bodySmall),
+        ],
+      ),
+      actions: [
+        _buildNotificationButton(context, compact: true),
+        _buildProfileButton(context, compact: true),
+      ],
+    );
+  }
+
+  // =========================================================
   // SIDEBAR
   // =========================================================
 
-  Widget _buildSidebar(
-    BuildContext context, {
-    required bool collapsed,
-  }) {
+  Widget _buildSidebar(BuildContext context, {required bool collapsed}) {
+    final admin = _currentAdmin;
+
+    final width = collapsed
+        ? AppDimensions.sidebarCollapsedWidth
+        : AppDimensions.sidebarWidth;
+
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
-
-      width: collapsed
-          ? AppDimensions.sidebarCollapsedWidth
-          : AppDimensions.sidebarWidth,
-
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-
-        border: Border(
-          right: BorderSide(
-            color: AppColors.border,
-          ),
-        ),
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      width: width,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(right: BorderSide(color: Colors.grey.shade200)),
       ),
-
-      child: Column(
-        children: [
-          _buildSidebarHeader(collapsed),
-
-          const SizedBox(
-            height: AppDimensions.spacing16,
-          ),
-
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.spacing12,
-              ),
-              child: Column(
-                children: [
-                  _buildNavigationSection(
-                    context,
-                    title: 'MAIN',
-                    collapsed: collapsed,
-                    items: const [
-                      _NavigationItem(
-                        label: 'Dashboard',
-                        icon: Icons.dashboard_outlined,
-                        route: '/',
+      child: SafeArea(
+        child: Column(
+          children: [
+            _buildSidebarHeader(context, collapsed: collapsed),
+            const SizedBox(height: 8),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildNavigationSection(
+                      context,
+                      items: _visibleItems(mainNavigationItems, admin),
+                      collapsed: collapsed,
+                    ),
+                    _buildNavigationSection(
+                      context,
+                      items: _visibleItems(communicationNavigationItems, admin),
+                      collapsed: collapsed,
+                      title: 'COMMUNICATION',
+                    ),
+                    _buildNavigationSection(
+                      context,
+                      items: _visibleItems(
+                        administrationNavigationItems,
+                        admin,
                       ),
-                      _NavigationItem(
-                        label: 'Users',
-                        icon: Icons.people_outline_rounded,
-                        route: '/users',
-                      ),
-                      _NavigationItem(
-                        label: 'KYC',
-                        icon: Icons.verified_user_outlined,
-                        route: '/kyc',
-                      ),
-                      _NavigationItem(
-                        label: 'Assets',
-                        icon: Icons.account_balance_outlined,
-                        route: '/assets',
-                      ),
-                      _NavigationItem(
-                        label: 'Tokenization',
-                        icon: Icons.token_outlined,
-                        route: '/tokenization',
-                      ),
-                      _NavigationItem(
-                        label: 'Trading',
-                        icon: Icons.swap_horiz_rounded,
-                        route: '/trading',
-                      ),
-                      _NavigationItem(
-                        label: 'Finance',
-                        icon: Icons.account_balance_wallet_outlined,
-                        route: '/finance',
-                      ),
-                      _NavigationItem(
-                        label: 'Ledger',
-                        icon: Icons.receipt_long_outlined,
-                        route: '/ledger',
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(
-                    height: AppDimensions.spacing24,
-                  ),
-
-                  _buildNavigationSection(
-                    context,
-                    title: 'COMMUNICATION',
-                    collapsed: collapsed,
-                    items: const [
-                      _NavigationItem(
-                        label: 'Notifications',
-                        icon: Icons.notifications_none_rounded,
-                        route: '/notifications',
-                      ),
-                      _NavigationItem(
-                        label: 'Content',
-                        icon: Icons.article_outlined,
-                        route: '/content',
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(
-                    height: AppDimensions.spacing24,
-                  ),
-
-                  _buildNavigationSection(
-                    context,
-                    title: 'ADMINISTRATION',
-                    collapsed: collapsed,
-                    items: const [
-                      _NavigationItem(
-                        label: 'Staff',
-                        icon: Icons.admin_panel_settings_outlined,
-                        route: '/staff',
-                      ),
-                      _NavigationItem(
-                        label: 'Settings',
-                        icon: Icons.settings_outlined,
-                        route: '/settings',
-                      ),
-                    ],
-                  ),
-                ],
+                      collapsed: collapsed,
+                      title: 'ADMINISTRATION',
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-
-          _buildLogoutButton(collapsed),
-        ],
+            _buildSidebarFooter(context, collapsed: collapsed, admin: admin),
+          ],
+        ),
       ),
     );
   }
@@ -305,45 +395,48 @@ class _AdminShellState extends State<AdminShell> {
   // SIDEBAR HEADER
   // =========================================================
 
-  Widget _buildSidebarHeader(bool collapsed) {
+  Widget _buildSidebarHeader(BuildContext context, {required bool collapsed}) {
     return SizedBox(
-      height: 80,
+      height: AppDimensions.topBarHeight,
       child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: collapsed
-              ? AppDimensions.spacing12
-              : AppDimensions.spacing20,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: collapsed ? 14 : 20),
         child: Row(
           children: [
-            _buildLogo(),
-
-            if (!collapsed) ...[
-              const SizedBox(
-                width: AppDimensions.spacing12,
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  colors: [AppColors.primary, AppColors.secondary],
+                ),
               ),
-
-              const Expanded(
+              child: const Center(
+                child: Icon(
+                  Icons.token_outlined,
+                  color: Colors.white,
+                  size: 23,
+                ),
+              ),
+            ),
+            if (!collapsed) ...[
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'AssetCoin',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                      style: AppTextStyles.titleMedium.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    SizedBox(height: 2),
                     Text(
                       'ADMINISTRATION',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
+                      style: AppTextStyles.labelSmall.copyWith(
                         letterSpacing: 1.2,
-                        color: AppColors.primaryBlue,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
@@ -362,36 +455,37 @@ class _AdminShellState extends State<AdminShell> {
 
   Widget _buildNavigationSection(
     BuildContext context, {
-    required String title,
-    required bool collapsed,
     required List<_NavigationItem> items,
+    required bool collapsed,
+    String? title,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (!collapsed)
-          Padding(
-            padding: const EdgeInsets.only(
-              left: AppDimensions.spacing12,
-              bottom: AppDimensions.spacing8,
-            ),
-            child: Text(
-              title,
-              style: AppTextStyles.labelSmall.copyWith(
-                color: AppColors.textTertiary,
-                letterSpacing: 1,
+    if (items.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!collapsed && title != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              child: Text(
+                title,
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1,
+                ),
               ),
             ),
+          ...items.map(
+            (item) =>
+                _buildNavigationItem(context, item: item, collapsed: collapsed),
           ),
-
-        ...items.map(
-          (item) => _buildNavigationItem(
-            context,
-            item: item,
-            collapsed: collapsed,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -404,82 +498,71 @@ class _AdminShellState extends State<AdminShell> {
     required _NavigationItem item,
     required bool collapsed,
   }) {
-    final isActive = _isRouteActive(item.route);
+    final currentPath = GoRouterState.of(context).uri.path;
 
-    final backgroundColor = isActive
-        ? AppColors.primaryBlueLight
-        : Colors.transparent;
-
-    final iconColor = isActive
-        ? AppColors.primaryBlue
-        : AppColors.textSecondary;
-
-    final textColor = isActive
-        ? AppColors.primaryBlue
-        : AppColors.textPrimary;
+    final isActive = item.route == '/'
+        ? currentPath == '/'
+        : currentPath == item.route || currentPath.startsWith('${item.route}/');
 
     return Padding(
-      padding: const EdgeInsets.only(
-        bottom: AppDimensions.spacing4,
-      ),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Tooltip(
         message: collapsed ? item.label : '',
-        child: InkWell(
-          borderRadius: BorderRadius.circular(
-            AppDimensions.radius8,
-          ),
-          onTap: () {
-            _navigateTo(item.route);
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            height: 44,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.spacing12,
-            ),
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.circular(
-                AppDimensions.radius8,
+        waitDuration: const Duration(milliseconds: 500),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              _navigateTo(item.route, closeDrawer: false);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              height: 46,
+              padding: EdgeInsets.symmetric(horizontal: collapsed ? 12 : 14),
+              decoration: BoxDecoration(
+                color: isActive
+                    ? AppColors.primary.withValues(alpha: 0.10)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
               ),
-              border: isActive
-                  ? const Border(
-                      left: BorderSide(
-                        color: AppColors.primaryBlue,
-                        width: 3,
-                      ),
-                    )
-                  : null,
-            ),
-            child: Row(
-              mainAxisAlignment: collapsed
-                  ? MainAxisAlignment.center
-                  : MainAxisAlignment.start,
-              children: [
-                Icon(
-                  item.icon,
-                  size: 20,
-                  color: iconColor,
-                ),
-
-                if (!collapsed) ...[
-                  const SizedBox(
-                    width: AppDimensions.spacing12,
+              child: Row(
+                mainAxisAlignment: collapsed
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
+                children: [
+                  Icon(
+                    item.icon,
+                    size: 21,
+                    color: isActive ? AppColors.primary : Colors.grey.shade600,
                   ),
-
-                  Expanded(
-                    child: Text(
-                      item.label,
-                      style: AppTextStyles.labelMedium.copyWith(
-                        color: textColor,
-                        fontWeight: isActive
-                            ? FontWeight.w600
-                            : FontWeight.w500,
+                  if (!collapsed) ...[
+                    const SizedBox(width: 13),
+                    Expanded(
+                      child: Text(
+                        item.label,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: isActive
+                              ? AppColors.primary
+                              : Colors.grey.shade700,
+                          fontWeight: isActive
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                        ),
                       ),
                     ),
-                  ),
+                    if (isActive)
+                      Container(
+                        width: 5,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                      ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -488,56 +571,63 @@ class _AdminShellState extends State<AdminShell> {
   }
 
   // =========================================================
-  // LOGOUT
+  // SIDEBAR FOOTER
   // =========================================================
 
-  Widget _buildLogoutButton(bool collapsed) {
+  Widget _buildSidebarFooter(
+    BuildContext context, {
+    required bool collapsed,
+    required AdminUser? admin,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(
-        AppDimensions.spacing12,
+      padding: EdgeInsets.fromLTRB(
+        collapsed ? 12 : 16,
+        12,
+        collapsed ? 12 : 16,
+        16,
       ),
-      decoration: const BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: AppColors.border,
-          ),
-        ),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
       ),
-      child: Tooltip(
-        message: collapsed ? 'Logout' : '',
-        child: InkWell(
-          borderRadius: BorderRadius.circular(
-            AppDimensions.radius8,
-          ),
-          onTap: () {
-            // Logout will be connected to authentication.
-          },
-          child: SizedBox(
-            height: 44,
-            child: Row(
-              mainAxisAlignment: collapsed
-                  ? MainAxisAlignment.center
-                  : MainAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.logout_rounded,
-                  size: 20,
-                  color: AppColors.danger,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          _showProfileMenu(context);
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              _buildAvatar(admin, size: 40),
+              if (!collapsed) ...[
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        admin?.fullName ?? 'Administrator',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _formatRole(admin?.role),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-
-                if (!collapsed) ...[
-                  const SizedBox(
-                    width: AppDimensions.spacing12,
-                  ),
-                  Text(
-                    'Logout',
-                    style: AppTextStyles.labelMedium.copyWith(
-                      color: AppColors.danger,
-                    ),
-                  ),
-                ],
+                const Icon(Icons.more_vert_rounded, size: 20),
               ],
-            ),
+            ],
           ),
         ),
       ),
@@ -548,218 +638,145 @@ class _AdminShellState extends State<AdminShell> {
   // TOP BAR
   // =========================================================
 
-  Widget _buildTopBar(
-    BuildContext context, {
-    required bool isTablet,
-  }) {
+  Widget _buildTopBar(BuildContext context) {
+    final admin = _currentAdmin;
+
     return Container(
       height: AppDimensions.topBarHeight,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.spacing24,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.border,
-          ),
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
       ),
       child: Row(
         children: [
-          if (!isTablet)
-            IconButton(
-              tooltip: 'Collapse sidebar',
-              onPressed: _toggleSidebar,
-              icon: Icon(
-                _isSidebarCollapsed
-                    ? Icons.menu_open_rounded
-                    : Icons.menu_rounded,
-              ),
+          IconButton(
+            tooltip: _isSidebarCollapsed
+                ? 'Expand sidebar'
+                : 'Collapse sidebar',
+            icon: Icon(
+              _isSidebarCollapsed
+                  ? Icons.menu_open_rounded
+                  : Icons.menu_rounded,
             ),
-
-          if (!isTablet)
-            const SizedBox(
-              width: AppDimensions.spacing16,
-            ),
-
+            onPressed: () {
+              setState(() {
+                _isSidebarCollapsed = !_isSidebarCollapsed;
+              });
+            },
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: _buildPageHeading(),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.title,
+                  style: AppTextStyles.titleLarge.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (widget.subtitle != null)
+                  Text(
+                    widget.subtitle!,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+              ],
+            ),
           ),
-
-          _buildSearchButton(),
-
-          const SizedBox(
-            width: AppDimensions.spacing8,
-          ),
-
-          _buildNotificationButton(),
-
-          const SizedBox(
-            width: AppDimensions.spacing16,
-          ),
-
-          _buildAdminProfile(),
+          _buildSearchButton(context),
+          const SizedBox(width: 8),
+          _buildNotificationButton(context),
+          const SizedBox(width: 8),
+          _buildProfileButton(context, admin: admin),
         ],
       ),
     );
   }
 
   // =========================================================
-  // PAGE HEADING
+  // SEARCH
   // =========================================================
 
-  Widget _buildPageHeading() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          widget.title,
-          style: AppTextStyles.headingMedium,
-        ),
-
-        if (widget.subtitle != null) ...[
-          const SizedBox(height: 2),
-          Text(
-            widget.subtitle!,
-            style: AppTextStyles.bodySmall,
-          ),
-        ],
-      ],
+  Widget _buildSearchButton(BuildContext context) {
+    return IconButton(
+      tooltip: 'Search',
+      icon: const Icon(Icons.search_rounded),
+      onPressed: () {
+        _showComingSoon(context, 'Global search is coming soon.');
+      },
     );
   }
 
   // =========================================================
-  // MOBILE DRAWER
+  // NOTIFICATIONS
   // =========================================================
 
-  Widget _buildMobileDrawer(BuildContext context) {
-    return Drawer(
-      backgroundColor: AppColors.surface,
-      child: SafeArea(
-        child: Column(
+  Widget _buildNotificationButton(
+    BuildContext context, {
+    bool compact = false,
+  }) {
+    return IconButton(
+      tooltip: 'Notifications',
+      icon: Icon(Icons.notifications_none_rounded, size: compact ? 23 : 22),
+      onPressed: () {
+        context.go('/notifications');
+      },
+    );
+  }
+
+  // =========================================================
+  // PROFILE BUTTON
+  // =========================================================
+
+  Widget _buildProfileButton(
+    BuildContext context, {
+    AdminUser? admin,
+    bool compact = false,
+  }) {
+    admin ??= _currentAdmin;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () {
+        _showProfileMenu(context);
+      },
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 6, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _buildSidebarHeader(false),
-
-            const Divider(
-              color: AppColors.divider,
-            ),
-
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(
-                  AppDimensions.spacing12,
-                ),
+            _buildAvatar(admin, size: compact ? 34 : 38),
+            if (!compact) ...[
+              const SizedBox(width: 9),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildMobileNavigationItem(
-                    context,
-                    'Dashboard',
-                    Icons.dashboard_outlined,
-                    '/',
+                  Text(
+                    admin?.fullName ?? 'Administrator',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                  _buildMobileNavigationItem(
-                    context,
-                    'Users',
-                    Icons.people_outline_rounded,
-                    '/users',
-                  ),
-                  _buildMobileNavigationItem(
-                    context,
-                    'KYC',
-                    Icons.verified_user_outlined,
-                    '/kyc',
-                  ),
-                  _buildMobileNavigationItem(
-                    context,
-                    'Assets',
-                    Icons.account_balance_outlined,
-                    '/assets',
-                  ),
-                  _buildMobileNavigationItem(
-                    context,
-                    'Tokenization',
-                    Icons.token_outlined,
-                    '/tokenization',
-                  ),
-                  _buildMobileNavigationItem(
-                    context,
-                    'Trading',
-                    Icons.swap_horiz_rounded,
-                    '/trading',
-                  ),
-                  _buildMobileNavigationItem(
-                    context,
-                    'Finance',
-                    Icons.account_balance_wallet_outlined,
-                    '/finance',
-                  ),
-                  _buildMobileNavigationItem(
-                    context,
-                    'Ledger',
-                    Icons.receipt_long_outlined,
-                    '/ledger',
-                  ),
-
-                  const Divider(
-                    height: 32,
-                    color: AppColors.divider,
-                  ),
-
-                  _buildMobileNavigationItem(
-                    context,
-                    'Notifications',
-                    Icons.notifications_none_rounded,
-                    '/notifications',
-                  ),
-                  _buildMobileNavigationItem(
-                    context,
-                    'Content',
-                    Icons.article_outlined,
-                    '/content',
-                  ),
-
-                  const Divider(
-                    height: 32,
-                    color: AppColors.divider,
-                  ),
-
-                  _buildMobileNavigationItem(
-                    context,
-                    'Staff',
-                    Icons.admin_panel_settings_outlined,
-                    '/staff',
-                  ),
-                  _buildMobileNavigationItem(
-                    context,
-                    'Settings',
-                    Icons.settings_outlined,
-                    '/settings',
+                  Text(
+                    _formatRole(admin?.role),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
                   ),
                 ],
               ),
-            ),
-
-            const Divider(
-              color: AppColors.divider,
-            ),
-
-            ListTile(
-              leading: const Icon(
-                Icons.logout_rounded,
-                color: AppColors.danger,
-              ),
-              title: Text(
-                'Logout',
-                style: AppTextStyles.labelMedium.copyWith(
-                  color: AppColors.danger,
-                ),
-              ),
-              onTap: () {
-                // Logout will be connected to authentication.
-                Navigator.of(context).pop();
-              },
-            ),
+              const SizedBox(width: 4),
+              const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+            ],
           ],
         ),
       ),
@@ -767,66 +784,304 @@ class _AdminShellState extends State<AdminShell> {
   }
 
   // =========================================================
-  // MOBILE NAVIGATION ITEM
+  // AVATAR
   // =========================================================
 
-  Widget _buildMobileNavigationItem(
-    BuildContext context,
-    String label,
-    IconData icon,
-    String route,
-  ) {
-    final isActive = _isRouteActive(route);
+  Widget _buildAvatar(AdminUser? admin, {required double size}) {
+    final imageUrl = admin?.profilePhotoUrl;
 
-    return Padding(
-      padding: const EdgeInsets.only(
-        bottom: AppDimensions.spacing4,
-      ),
-      child: ListTile(
-        leading: Icon(
-          icon,
-          color: isActive
-              ? AppColors.primaryBlue
-              : AppColors.textSecondary,
-        ),
-        title: Text(
-          label,
-          style: AppTextStyles.labelMedium.copyWith(
-            color: isActive
-                ? AppColors.primaryBlue
-                : AppColors.textPrimary,
-            fontWeight: isActive
-                ? FontWeight.w600
-                : FontWeight.w500,
-          ),
-        ),
-        selected: isActive,
-        selectedTileColor: AppColors.primaryBlueLight,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            AppDimensions.radius8,
-          ),
-        ),
-        onTap: () {
-          Navigator.of(context).pop();
+    if (imageUrl != null && imageUrl.trim().isNotEmpty) {
+      return CircleAvatar(
+        radius: size / 2,
+        backgroundColor: AppColors.primary.withValues(alpha: 0.10),
+        backgroundImage: NetworkImage(imageUrl),
+      );
+    }
 
-          if (!isActive) {
-            _navigateTo(route);
-          }
-        },
+    return CircleAvatar(
+      radius: size / 2,
+      backgroundColor: AppColors.primary,
+      child: Text(
+        admin?.initials ?? 'AD',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: size * 0.32,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
 
   // =========================================================
+  // DRAWER
+  // =========================================================
+
+  Widget _buildDrawer(BuildContext context) {
+    final admin = _currentAdmin;
+
+    final mainItems = _visibleItems(mainNavigationItems, admin);
+
+    final communicationItems = _visibleItems(
+      communicationNavigationItems,
+      admin,
+    );
+
+    final administrationItems = _visibleItems(
+      administrationNavigationItems,
+      admin,
+    );
+
+    return Drawer(
+      width: 290,
+      backgroundColor: Colors.white,
+      child: SafeArea(
+        child: Column(
+          children: [
+            _buildMobileDrawerHeader(context, admin),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildNavigationSection(
+                      context,
+                      items: mainItems,
+                      collapsed: false,
+                    ),
+                    _buildNavigationSection(
+                      context,
+                      items: communicationItems,
+                      collapsed: false,
+                      title: 'COMMUNICATION',
+                    ),
+                    _buildNavigationSection(
+                      context,
+                      items: administrationItems,
+                      collapsed: false,
+                      title: 'ADMINISTRATION',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            _buildMobileDrawerFooter(context, admin),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // =========================================================
+  // MOBILE DRAWER HEADER
+  // =========================================================
+
+  Widget _buildMobileDrawerHeader(BuildContext context, AdminUser? admin) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.primary, AppColors.secondary],
+        ),
+      ),
+      child: Row(
+        children: [
+          _buildAvatar(admin, size: 48),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'AssetCoin',
+                  style: AppTextStyles.titleMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  admin?.fullName ?? 'Administrator',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================
+  // MOBILE DRAWER FOOTER
+  // =========================================================
+
+  Widget _buildMobileDrawerFooter(BuildContext context, AdminUser? admin) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: Row(
+        children: [
+          _buildAvatar(admin, size: 38),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  admin?.fullName ?? 'Administrator',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  _formatRole(admin?.role),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Sign out',
+            icon: const Icon(Icons.logout_rounded),
+            onPressed: _logout,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================
+  // PROFILE MENU
+  // =========================================================
+
+  Future<void> _showProfileMenu(BuildContext context) async {
+    final admin = _currentAdmin;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildProfileSummary(admin),
+                const SizedBox(height: 16),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.person_outline_rounded),
+                  title: const Text('Profile'),
+                  subtitle: const Text('Manage your administrator profile'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _showComingSoon(
+                      this.context,
+                      'Administrator profile management is coming soon.',
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.settings_outlined),
+                  title: const Text('Settings'),
+                  subtitle: const Text('Manage admin preferences'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    this.context.go('/settings');
+                  },
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _logout();
+                    },
+                    icon: const Icon(Icons.logout_rounded),
+                    label: const Text('Sign out'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // =========================================================
+  // PROFILE SUMMARY
+  // =========================================================
+
+  Widget _buildProfileSummary(AdminUser? admin) {
+    return Row(
+      children: [
+        _buildAvatar(admin, size: 56),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                admin?.fullName ?? 'Administrator',
+                style: AppTextStyles.titleMedium.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                admin?.email ?? '',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                _formatRole(admin?.role),
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // =========================================================
   // CONTENT
+  //
+  // IMPORTANT:
+  // DashboardPage already owns its scrolling.
+  // Therefore AdminShell must NOT wrap widget.child
+  // in another SingleChildScrollView.
   // =========================================================
 
   Widget _buildContent(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(
-        AppDimensions.pageHorizontalPadding,
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(AppDimensions.pageHorizontalPadding),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(
@@ -839,235 +1094,60 @@ class _AdminShellState extends State<AdminShell> {
   }
 
   // =========================================================
-  // BRAND
+  // ROLE FORMATTER
   // =========================================================
 
-  Widget _buildBrand() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildLogo(),
+  String _formatRole(String? role) {
+    if (role == null || role.trim().isEmpty) {
+      return 'Administrator';
+    }
 
-        const SizedBox(
-          width: AppDimensions.spacing8,
-        ),
+    switch (role) {
+      case 'super_admin':
+        return 'Super Administrator';
 
-        const Text(
-          'AssetCoin',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-      ],
-    );
+      case 'asset_officer':
+        return 'Asset Officer';
+
+      case 'kyc_officer':
+        return 'KYC Officer';
+
+      case 'tokenization_officer':
+        return 'Tokenization Officer';
+
+      case 'finance_officer':
+        return 'Finance Officer';
+
+      case 'trading_officer':
+        return 'Trading Officer';
+
+      case 'support_officer':
+        return 'Support Officer';
+
+      case 'auditor':
+        return 'Auditor';
+
+      default:
+        return role
+            .split('_')
+            .map(
+              (part) => part.isEmpty
+                  ? part
+                  : '${part[0].toUpperCase()}${part.substring(1)}',
+            )
+            .join(' ');
+    }
   }
 
   // =========================================================
-  // LOGO
+  // COMING SOON
   // =========================================================
 
-  Widget _buildLogo() {
-    return Container(
-      width: 38,
-      height: 38,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            AppColors.primaryBlue,
-            AppColors.primaryRed,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(
-          AppDimensions.radius8,
-        ),
-      ),
-      child: const Center(
-        child: Icon(
-          Icons.account_balance_rounded,
-          color: Colors.white,
-          size: 21,
-        ),
-      ),
-    );
+  void _showComingSoon(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      );
   }
-
-  // =========================================================
-  // SEARCH
-  // =========================================================
-
-  Widget _buildSearchButton() {
-    return IconButton(
-      tooltip: 'Search',
-      onPressed: () {
-        // Global search will be implemented later.
-      },
-      icon: const Icon(
-        Icons.search_rounded,
-      ),
-    );
-  }
-
-  // =========================================================
-  // NOTIFICATIONS
-  // =========================================================
-
-  Widget _buildNotificationButton() {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        IconButton(
-          tooltip: 'Notifications',
-          onPressed: () {
-            _navigateTo('/notifications');
-          },
-          icon: const Icon(
-            Icons.notifications_none_rounded,
-          ),
-        ),
-
-        Positioned(
-          top: 7,
-          right: 7,
-          child: Container(
-            width: 7,
-            height: 7,
-            decoration: const BoxDecoration(
-              color: AppColors.primaryRed,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // =========================================================
-  // ADMIN PROFILE
-  // =========================================================
-
-  Widget _buildAdminProfile() {
-    return PopupMenuButton<String>(
-      tooltip: 'Administrator account',
-      offset: const Offset(0, 50),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          AppDimensions.radius12,
-        ),
-      ),
-      onSelected: (value) {
-        switch (value) {
-          case 'profile':
-            _showProfileMessage();
-            break;
-
-          case 'settings':
-            _navigateTo('/settings');
-            break;
-
-          case 'logout':
-            // Logout will be connected to authentication.
-            break;
-        }
-      },
-      itemBuilder: (context) => const [
-        PopupMenuItem(
-          value: 'profile',
-          child: Text('My Profile'),
-        ),
-        PopupMenuItem(
-          value: 'settings',
-          child: Text('Settings'),
-        ),
-        PopupMenuDivider(),
-        PopupMenuItem(
-          value: 'logout',
-          child: Text('Logout'),
-        ),
-      ],
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: AppColors.primaryBlueLight,
-            child: const Text(
-              'AD',
-              style: TextStyle(
-                color: AppColors.primaryBlue,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
-            ),
-          ),
-
-          const SizedBox(
-            width: AppDimensions.spacing8,
-          ),
-
-          const Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Administrator',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              Text(
-                'Super Administrator',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(
-            width: AppDimensions.spacing8,
-          ),
-
-          const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            size: 18,
-            color: AppColors.textSecondary,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // =========================================================
-  // PROFILE MESSAGE
-  // =========================================================
-
-  void _showProfileMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Administrator profile will be connected to the admin account.',
-        ),
-      ),
-    );
-  }
-}
-
-// =============================================================
-// NAVIGATION ITEM MODEL
-// =============================================================
-
-class _NavigationItem {
-  const _NavigationItem({
-    required this.label,
-    required this.icon,
-    required this.route,
-  });
-
-  final String label;
-  final IconData icon;
-  final String route;
 }
