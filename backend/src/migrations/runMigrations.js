@@ -195,6 +195,8 @@ const run = async () => {
     '042_admin_settings.sql',
 
     '043_admin_kyc_workflow.sql',
+    '044_admin_tokenization_workflow.sql',
+
   ];
 
   // =========================================================

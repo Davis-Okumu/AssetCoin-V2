@@ -21,6 +21,8 @@ import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/users/presentation/pages/user_details_page.dart';
 
 import '../features/assets/presentation/pages/asset_details_page.dart';
+import '../features/tokenization/presentation/pages/tokenization_proposal_page.dart';
+import '../features/tokenization/presentation/pages/token_offering_page.dart';
 
 final adminRouterProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = _AuthRouterRefreshNotifier(ref);
@@ -162,10 +164,25 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/tokenization',
             builder: (context, state) {
-              // return const TokenizationPage();
-              return const Scaffold(
-                body: Center(child: Text('Users Page - Coming Soon')),
-              );
+              return const TokenizationPage();
+            },
+          ),
+
+          GoRoute(
+            path: '/tokenization/proposals/:id',
+            builder: (context, state) {
+              final id = int.parse(state.pathParameters['id']!);
+
+              return TokenizationProposalPage(proposalId: id);
+            },
+          ),
+
+          GoRoute(
+            path: '/tokenization/offerings/:id',
+            builder: (context, state) {
+              final id = int.parse(state.pathParameters['id']!);
+
+              return TokenOfferingPage(offeringId: id);
             },
           ),
 
