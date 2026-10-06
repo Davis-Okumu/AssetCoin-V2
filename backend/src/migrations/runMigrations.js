@@ -193,6 +193,8 @@ const run = async () => {
 
     // Global admin/platform settings
     '042_admin_settings.sql',
+
+    '043_admin_kyc_workflow.sql',
   ];
 
   // =========================================================

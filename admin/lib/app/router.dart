@@ -20,6 +20,8 @@ import '../features/staff/presentation/pages/staff_page.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/users/presentation/pages/user_details_page.dart';
 
+import '../features/assets/presentation/pages/asset_details_page.dart';
+
 final adminRouterProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = _AuthRouterRefreshNotifier(ref);
 
@@ -125,10 +127,7 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/kyc',
             builder: (context, state) {
-              // return const KycPage();
-              return const Scaffold(
-                body: Center(child: Text('Users Page - Coming Soon')),
-              );
+              return const KycPage();
             },
           ),
 
@@ -138,10 +137,22 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/assets',
             builder: (context, state) {
-              // return const AssetsPage();
-              return const Scaffold(
-                body: Center(child: Text('Users Page - Coming Soon')),
-              );
+              return const AssetsPage();
+            },
+          ),
+
+          GoRoute(
+            path: '/assets/:id',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '');
+
+              if (id == null) {
+                return const Scaffold(
+                  body: Center(child: Text('Invalid asset ID')),
+                );
+              }
+
+              return AssetDetailsPage(assetId: id);
             },
           ),
 

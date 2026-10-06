@@ -14,18 +14,45 @@ CREATE TABLE IF NOT EXISTS `assets` (
   `registrationNumber` VARCHAR(100) DEFAULT NULL,
   `estimatedValue` DECIMAL(20,2) DEFAULT NULL,
   `currency` VARCHAR(10) NOT NULL DEFAULT 'KES',
-  `status` ENUM('draft','pending','under_review','changes_required','approved','rejected','tokenized','suspended') DEFAULT 'draft',
+
+  `status` ENUM(
+    'draft',
+    'pending',
+    'under_review',
+    'changes_required',
+    'approved',
+    'rejected',
+    'tokenized',
+    'suspended'
+  ) NOT NULL DEFAULT 'draft',
+
   `rejectionReason` TEXT DEFAULT NULL,
+
   `approvedBy` INT UNSIGNED DEFAULT NULL,
   `approvedAt` DATETIME DEFAULT NULL,
+
+  `reviewedBy` INT UNSIGNED DEFAULT NULL,
+  `reviewedAt` DATETIME DEFAULT NULL,
+  `reviewNotes` TEXT DEFAULT NULL,
+
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
   PRIMARY KEY (`id`),
+
   KEY `idx_assets_ownerId` (`ownerId`),
   KEY `idx_assets_type` (`assetType`),
   KEY `idx_assets_status` (`status`),
+  KEY `idx_assets_reviewedBy` (`reviewedBy`),
+
   CONSTRAINT `fk_assets_owner`
     FOREIGN KEY (`ownerId`) REFERENCES `users` (`id`),
+
   CONSTRAINT `fk_assets_approvedBy`
-    FOREIGN KEY (`approvedBy`) REFERENCES `users` (`id`)
+    FOREIGN KEY (`approvedBy`) REFERENCES `users` (`id`),
+
+  CONSTRAINT `fk_assets_reviewedBy`
+    FOREIGN KEY (`reviewedBy`) REFERENCES `users` (`id`)
+    ON DELETE SET NULL
+
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
