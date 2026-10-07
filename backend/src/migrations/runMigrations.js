@@ -60,7 +60,7 @@ const run = async () => {
     // Core User & Asset Management
     // =======================================================
 
-    '001_users.sql',
+    /*'001_users.sql',
     '002_kyc_records.sql',
     '003_assets.sql',
     '004_asset_photos.sql',
@@ -195,8 +195,8 @@ const run = async () => {
     '042_admin_settings.sql',
 
     '043_admin_kyc_workflow.sql',
-    '044_admin_tokenization_workflow.sql',
-
+    '044_admin_tokenization_workflow.sql',*/
+    '045_admin_trading_disputes.sql',
   ];
 
   // =========================================================

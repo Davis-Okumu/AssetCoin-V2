@@ -11,7 +11,6 @@ import '../features/users/presentation/pages/users_page.dart';
 import '../features/kyc/presentation/pages/kyc_page.dart';
 import '../features/assets/presentation/pages/assets_page.dart';
 import '../features/tokenization/presentation/pages/tokenization_page.dart';
-import '../features/trading/presentation/pages/trading_page.dart';
 import '../features/finance/presentation/pages/finance_page.dart';
 import '../features/ledger/presentation/pages/ledger_page.dart';
 import '../features/notifications/presentation/pages/notifications_page.dart';
@@ -19,6 +18,15 @@ import '../features/content/presentation/pages/content_page.dart';
 import '../features/staff/presentation/pages/staff_page.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/users/presentation/pages/user_details_page.dart';
+import '../features/trading/presentation/pages/trading_overview_page.dart';
+import '../features/trading/presentation/pages/trading_listings_page.dart';
+import '../features/trading/presentation/pages/trading_listing_details_page.dart';
+import '../features/trading/presentation/pages/trading_orders_page.dart';
+import '../features/trading/presentation/pages/trading_order_details_page.dart';
+import '../features/trading/presentation/pages/trading_trades_page.dart';
+import '../features/trading/presentation/pages/trading_trade_details_page.dart';
+import '../features/trading/presentation/pages/trading_disputes_page.dart';
+import '../features/trading/presentation/pages/trading_dispute_details_page.dart';
 
 import '../features/assets/presentation/pages/asset_details_page.dart';
 import '../features/tokenization/presentation/pages/tokenization_proposal_page.dart';
@@ -192,10 +200,87 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/trading',
             builder: (context, state) {
-              // return const TradingPage();
-              return const Scaffold(
-                body: Center(child: Text('Users Page - Coming Soon')),
-              );
+              return const TradingOverviewPage();
+            },
+          ),
+          GoRoute(
+            path: '/trading/listings',
+            builder: (context, state) {
+              return const TradingListingsPage();
+            },
+          ),
+          GoRoute(
+            path: '/trading/listings/:id',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '');
+
+              if (id == null) {
+                return const Scaffold(
+                  body: Center(child: Text('Invalid listing ID.')),
+                );
+              }
+
+              return TradingListingDetailsPage(listingId: id);
+            },
+          ),
+          GoRoute(
+            path: '/trading/orders',
+            builder: (context, state) {
+              return const TradingOrdersPage();
+            },
+          ),
+          GoRoute(
+            path: '/trading/orders/:id',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '');
+
+              if (id == null) {
+                return const Scaffold(
+                  body: Center(child: Text('Invalid order ID.')),
+                );
+              }
+
+              return TradingOrderDetailsPage(orderId: id);
+            },
+          ),
+          GoRoute(
+            path: '/trading/trades',
+            builder: (context, state) {
+              return const TradingTradesPage();
+            },
+          ),
+          GoRoute(
+            path: '/trading/trades/:id',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '');
+
+              if (id == null) {
+                return const Scaffold(
+                  body: Center(child: Text('Invalid trade ID.')),
+                );
+              }
+
+              return TradingTradeDetailsPage(transactionId: id);
+            },
+          ),
+          GoRoute(
+            path: '/trading/disputes',
+            builder: (context, state) {
+              return const TradingDisputesPage();
+            },
+          ),
+          GoRoute(
+            path: '/trading/disputes/:id',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '');
+
+              if (id == null) {
+                return const Scaffold(
+                  body: Center(child: Text('Invalid dispute ID.')),
+                );
+              }
+
+              return TradingDisputeDetailsPage(disputeId: id);
             },
           ),
 

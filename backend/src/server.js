@@ -23,6 +23,7 @@ import adminUsersRoutes from "./routes/admin/adminUsersRoutes.js";
 import adminAssetsRoutes from "./routes/admin/adminAssetsRoutes.js";
 import adminKycRoutes from "./routes/admin/adminKycRoutes.js";
 import adminTokenizationRoutes from "./routes/admin/adminTokenizationRoutes.js";
+import adminTradingRoutes from "./routes/admin/adminTradingRoutes.js";
 
 const app = express();
 
@@ -101,6 +102,7 @@ app.use("/api/admin/users", adminUsersRoutes);
 app.use("/api/admin/assets", adminAssetsRoutes);
 app.use("/api/admin/kyc", adminKycRoutes);
 app.use("/api/admin/tokenization", adminTokenizationRoutes,);
+app.use("/api/admin/trading", adminTradingRoutes);
 
 // =========================
 // ROOT ROUTE
