@@ -372,10 +372,7 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/content',
             builder: (context, state) {
-              // return const ContentPage();
-              return const Scaffold(
-                body: Center(child: Text('Users Page - Coming Soon')),
-              );
+              return const ContentPage();
             },
           ),
 
@@ -384,12 +381,7 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           // ===================================================
           GoRoute(
             path: '/staff',
-            builder: (context, state) {
-              // return const StaffPage();
-              return const Scaffold(
-                body: Center(child: Text('Users Page - Coming Soon')),
-              );
-            },
+            builder: (context, state) => const StaffPage(),
           ),
 
           // ===================================================

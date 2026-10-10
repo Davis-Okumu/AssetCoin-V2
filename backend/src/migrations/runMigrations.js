@@ -60,7 +60,7 @@ const run = async () => {
     // Core User & Asset Management
     // =======================================================
 
-    /*'001_users.sql',
+    '001_users.sql',
     '002_kyc_records.sql',
     '003_assets.sql',
     '004_asset_photos.sql',
@@ -92,6 +92,18 @@ const run = async () => {
     // =======================================================
 
     '017_notifications.sql',
+
+    // Admin roles
+    '030_admin_roles.sql',
+
+    // Admin permissions
+    '031_admin_permissions.sql',
+
+    // Role → permission relationships
+    '032_admin_role_permissions.sql',
+
+    // Admin/staff accounts
+    '033_admin_staff.sql',
     '018_announcements.sql',
     '019_news.sql',
 
@@ -155,18 +167,6 @@ const run = async () => {
     //
     // =======================================================
 
-    // Admin roles
-    '030_admin_roles.sql',
-
-    // Admin permissions
-    '031_admin_permissions.sql',
-
-    // Role → permission relationships
-    '032_admin_role_permissions.sql',
-
-    // Admin/staff accounts
-    '033_admin_staff.sql',
-
     // Staff-specific permission overrides
     '034_admin_staff_permissions.sql',
 
@@ -195,8 +195,9 @@ const run = async () => {
     '042_admin_settings.sql',
 
     '043_admin_kyc_workflow.sql',
-    '044_admin_tokenization_workflow.sql',*/
+    '044_admin_tokenization_workflow.sql',
     '045_admin_trading_disputes.sql',
+    '046_publications.sql',
   ];
 
   // =========================================================

@@ -27,6 +27,8 @@ import adminTradingRoutes from "./routes/admin/adminTradingRoutes.js";
 import adminFinanceRoutes from "./routes/admin/adminFinanceRoutes.js";
 import adminLedgerRoutes from "./routes/admin/adminLedgerRoutes.js";
 import adminNotificationsRoutes from "./routes/admin/adminNotificationsRoutes.js";
+import adminContentRoutes from "./routes/admin/adminContentRoutes.js";
+import adminStaffRoutes from "./routes/admin/adminStaffRoutes.js";
 
 const app = express();
 
@@ -109,6 +111,9 @@ app.use("/api/admin/trading", adminTradingRoutes);
 app.use("/api/admin/finance", adminFinanceRoutes);
 app.use("/api/admin/ledger", adminLedgerRoutes);
 app.use("/api/admin/notifications", adminNotificationsRoutes);
+app.use("/api/admin/content", adminContentRoutes);
+app.use("/api/admin/staff", adminStaffRoutes);
+
 // =========================
 // ROOT ROUTE
 // =========================
