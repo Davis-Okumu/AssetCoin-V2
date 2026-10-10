@@ -24,6 +24,9 @@ import adminAssetsRoutes from "./routes/admin/adminAssetsRoutes.js";
 import adminKycRoutes from "./routes/admin/adminKycRoutes.js";
 import adminTokenizationRoutes from "./routes/admin/adminTokenizationRoutes.js";
 import adminTradingRoutes from "./routes/admin/adminTradingRoutes.js";
+import adminFinanceRoutes from "./routes/admin/adminFinanceRoutes.js";
+import adminLedgerRoutes from "./routes/admin/adminLedgerRoutes.js";
+import adminNotificationsRoutes from "./routes/admin/adminNotificationsRoutes.js";
 
 const app = express();
 
@@ -103,7 +106,9 @@ app.use("/api/admin/assets", adminAssetsRoutes);
 app.use("/api/admin/kyc", adminKycRoutes);
 app.use("/api/admin/tokenization", adminTokenizationRoutes,);
 app.use("/api/admin/trading", adminTradingRoutes);
-
+app.use("/api/admin/finance", adminFinanceRoutes);
+app.use("/api/admin/ledger", adminLedgerRoutes);
+app.use("/api/admin/notifications", adminNotificationsRoutes);
 // =========================
 // ROOT ROUTE
 // =========================

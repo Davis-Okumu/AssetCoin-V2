@@ -31,6 +31,12 @@ import '../features/trading/presentation/pages/trading_dispute_details_page.dart
 import '../features/assets/presentation/pages/asset_details_page.dart';
 import '../features/tokenization/presentation/pages/tokenization_proposal_page.dart';
 import '../features/tokenization/presentation/pages/token_offering_page.dart';
+import '../features/finance/presentation/pages/finance_wallets_page.dart';
+import '../features/finance/presentation/pages/finance_transactions_page.dart';
+import '../features/finance/presentation/pages/finance_deposits_page.dart';
+import '../features/finance/presentation/pages/finance_withdrawals_page.dart';
+import '../features/finance/presentation/pages/finance_reconciliation_page.dart';
+import '../features/finance/presentation/pages/wallet_details_page.dart';
 
 final adminRouterProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = _AuthRouterRefreshNotifier(ref);
@@ -290,11 +296,56 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/finance',
             builder: (context, state) {
-              // return const FinancePage();
-              return const Scaffold(
-                body: Center(child: Text('Users Page - Coming Soon')),
-              );
+              return const FinancePage();
             },
+            routes: [
+              GoRoute(
+                path: 'wallets',
+                builder: (context, state) {
+                  return const FinanceWalletsPage();
+                },
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (context, state) {
+                      final id = int.tryParse(state.pathParameters['id'] ?? '');
+
+                      if (id == null) {
+                        return const Scaffold(
+                          body: Center(child: Text('Invalid wallet ID.')),
+                        );
+                      }
+
+                      return WalletDetailsPage(walletId: id);
+                    },
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: 'transactions',
+                builder: (context, state) {
+                  return const FinanceTransactionsPage();
+                },
+              ),
+              GoRoute(
+                path: 'deposits',
+                builder: (context, state) {
+                  return const FinanceDepositsPage();
+                },
+              ),
+              GoRoute(
+                path: 'withdrawals',
+                builder: (context, state) {
+                  return const FinanceWithdrawalsPage();
+                },
+              ),
+              GoRoute(
+                path: 'reconciliation',
+                builder: (context, state) {
+                  return const FinanceReconciliationPage();
+                },
+              ),
+            ],
           ),
 
           // ===================================================
@@ -303,10 +354,7 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/ledger',
             builder: (context, state) {
-              // return const LedgerPage();
-              return const Scaffold(
-                body: Center(child: Text('Users Page - Coming Soon')),
-              );
+              return const LedgerPage();
             },
           ),
 
@@ -315,12 +363,7 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           // ===================================================
           GoRoute(
             path: '/notifications',
-            builder: (context, state) {
-              // return const NotificationsPage();
-              return const Scaffold(
-                body: Center(child: Text('Users Page - Coming Soon')),
-              );
-            },
+            builder: (context, state) => const NotificationsPage(),
           ),
 
           // ===================================================
